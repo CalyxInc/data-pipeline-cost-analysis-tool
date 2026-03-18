@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>相機成本試算</title>
+  <style>
+    :root {
+      --bg:         #f0f2f5;
+      --surface:    #ffffff;
+      --border:     #dde2ea;
+      --border-hi:  #c8d0db;
+      --text:       #1e2d3d;
+      --muted:      #7a90a8;
+      --dim:        #dde2ea;
+      --teal:       #0077cc;
+      --teal-dim:   rgba(0,119,204,0.07);
+      --teal-glow:  rgba(0,119,204,0.15);
+      --amber:      #b45309;
+      --amber-dim:  rgba(180,83,9,0.08);
+      --green:      #0d7a55;
+      --green-dim:  rgba(13,122,85,0.08);
+      --mono: ui-monospace, 'Cascadia Code', 'SF Mono', 'Fira Mono', 'Inconsolata', 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 14px; }
+
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 20px 40px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    header .title {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    header .subtitle {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    header .dot {
+      color: var(--border-hi);
+      margin: 0 4px;
+    }
+
+    /* ── Main grid ── */
+    .grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 780px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-header::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+    }
+
+    .panel-body { padding: 20px 16px; }
+
+    /* ── Pipeline toggle ── */
+    .seg-control {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 3px;
+      gap: 3px;
+      margin-bottom: 24px;
+    }
+
+    .seg-control input[type="radio"] { display: none; }
+
+    .seg-control label {
+      display: block;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+
+    .seg-control label .freq {
+      display: block;
+      font-size: 0.62rem;
+      margin-top: 2px;
+      opacity: 0.6;
+    }
+
+    .seg-control input[type="radio"]:checked + label {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid rgba(14,240,200,0.2);
+    }
+
+    /* ── Param row ── */
+    .param { margin-bottom: 20px; }
+
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .param-name {
+      font-size: 0.72rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+
+    .param-name em {
+      font-style: normal;
+      color: var(--teal);
+      font-size: 0.80rem;
+    }
+
+    .param-range {
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+
+    .param-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Custom slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 2px;
+      background: var(--dim);
+      border-radius: 1px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal-glow);
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+
+    input[type="range"]:hover::-webkit-slider-thumb {
+      box-shadow: 0 0 14px var(--teal);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal-glow);
+      border: none;
+      cursor: pointer;
+    }
+
+    input[type="number"] {
+      width: 76px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--teal);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      padding: 5px 8px;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"]:focus { border-color: var(--teal); }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 0.3; }
+
+    /* ── Results panel ── */
+
+    /* Hero total */
+    .hero {
+      padding: 20px 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .hero-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .hero-value {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: -0.02em;
+      text-shadow: none;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .hero-unit {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+    }
+
+    /* Cost rows */
+    .cost-rows {
+      padding: 0 16px;
+    }
+
+    .cost-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .cost-row:last-child { border-bottom: none; }
+
+    .cost-left { flex: 1; min-width: 0; }
+
+    .cost-name {
+      font-size: 0.72rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .cost-sub {
+      font-size: 0.62rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cost-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      min-width: 72px;
+    }
+
+    /* Scheme badge */
+    .scheme-tag {
+      display: inline-block;
+      font-size: 0.58rem;
+      padding: 2px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+
+    .scheme-tag.normal {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.2);
+    }
+
+    .scheme-tag.upgrade {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+
+    /* Note / warnings */
+    .result-note-wrap {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      min-height: 32px;
+    }
+
+    #result-note {
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      line-height: 1.6;
+    }
+
+
+    /* Cost bar (visual proportion) */
+    .cost-bar-wrap {
+      height: 2px;
+      background: var(--dim);
+      border-radius: 1px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    .cost-bar {
+      height: 100%;
+      background: var(--teal);
+      border-radius: 1px;
+      transition: width 0.3s ease;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="title">Cost Estimator</span>
+    <span class="subtitle">單台相機月費試算<span class="dot">·</span>DC &amp; PCV Pipeline</span>
+  </header>
+
+  <div class="grid">
+
+    <!-- ── Left: Parameters ── -->
+    <div class="panel">
+      <div class="panel-header">Parameters</div>
+      <div class="panel-body">
+
+        <!-- Pipeline type -->
+        <div class="seg-control">
+          <input type="radio" name="pipeline" id="dc" value="DC" checked>
+          <label for="dc">
+            DC
+            <span class="freq">1 msg / 20 sec</span>
+          </label>
+          <input type="radio" name="pipeline" id="pcv" value="PCV">
+          <label for="pcv">
+            PCV
+            <span class="freq">1 msg / 120 sec</span>
+          </label>
+        </div>
+
+        <!-- N -->
+        <div class="param">
+          <div class="param-header">
+            <span class="param-name"><em>N</em> &nbsp;上線月數</span>
+            <span class="param-range">1 – 24 mo</span>
+          </div>
+          <div class="param-controls">
+            <input type="range" id="n-slider" min="1" max="24" value="12">
+            <input type="number" id="n-input" min="1" max="24" value="12">
+          </div>
+        </div>
+
+        <!-- M_DC -->
+        <div class="param">
+          <div class="param-header">
+            <span class="param-name"><em>M<sub style="font-size:0.7em">DC</sub></em> &nbsp;DC 相機總數</span>
+            <span class="param-range">1 – 3,000</span>
+          </div>
+          <div class="param-controls">
+            <input type="range" id="mdc-slider" min="1" max="3000" value="340">
+            <input type="number" id="mdc-input" min="1" max="3000" value="340">
+          </div>
+        </div>
+
+        <!-- M_PCV -->
+        <div class="param">
+          <div class="param-header">
+            <span class="param-name"><em>M<sub style="font-size:0.7em">PCV</sub></em> &nbsp;PCV 相機總數</span>
+            <span class="param-range">1 – 10,000</span>
+          </div>
+          <div class="param-controls">
+            <input type="range" id="mpcv-slider" min="1" max="10000" value="240">
+            <input type="number" id="mpcv-input" min="1" max="10000" value="240">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Right: Results ── -->
+    <div class="panel">
+      <div class="panel-header">Cost Breakdown <span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">per camera / month</span></div>
+
+      <!-- Hero total -->
+      <div class="hero">
+        <div>
+          <div class="hero-label">月費合計</div>
+          <div class="hero-value" id="result-total">—</div>
+        </div>
+        <div class="hero-unit">USD / 台 / 月</div>
+      </div>
+
+      <!-- Breakdown rows -->
+      <div class="cost-rows">
+
+        <div class="cost-row">
+          <div class="cost-left">
+            <div class="cost-name">EC2 算力</div>
+            <div class="cost-sub" id="ec2-detail">—</div>
+            <div class="cost-bar-wrap"><div class="cost-bar" id="bar-ec2" style="width:0%"></div></div>
+          </div>
+          <div class="cost-value" id="result-ec2">—</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-left">
+            <div class="cost-name">S3 Intelligent-Tiering</div>
+            <div class="cost-bar-wrap"><div class="cost-bar" id="bar-s3" style="width:0%"></div></div>
+          </div>
+          <div class="cost-value" id="result-s3">—</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-left">
+            <div class="cost-name">
+              MSK
+              <span class="scheme-tag normal" id="msk-tag">—</span>
+            </div>
+            <div class="cost-bar-wrap"><div class="cost-bar" id="bar-msk" style="width:0%"></div></div>
+          </div>
+          <div class="cost-value" id="result-msk">—</div>
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-left">
+            <div class="cost-name">
+              MongoDB Atlas
+              <span class="scheme-tag normal" id="mongo-tag">—</span>
+            </div>
+            <div class="cost-bar-wrap"><div class="cost-bar" id="bar-mongo" style="width:0%"></div></div>
+          </div>
+          <div class="cost-value" id="result-mongo">—</div>
+        </div>
+
+      </div>
+
+      <div class="result-note-wrap">
+        <div id="result-note"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── Constants ───────────────────────────────────────────────────────────
+
+    const G6_MONTHLY   = 0.805 * 720;   // $580 / node / month
+    const M7G_MONTHLY  = 0.653 * 720;   // $470 / node / month
+
+    // DC pipeline: cameras per node
+    const DC_CAMERAS_PER_G6  = 91;   // 1 / (0.05 * 0.22)
+    const DC_CAMERAS_PER_M7G = 828;  // 29 / (0.05 * 0.70)
+
+    // PCV pipeline: cameras per node
+    const PCV_CAMERAS_PER_G6  = 545;  // 1 / (0.00833 * 0.22)
+    const PCV_CAMERAS_PER_M7G = 600;  // 4 / (0.00833 * 0.80)
+
+    // DC camera rates (msg/sec)
+    const DC_RATE  = 0.05;       // 1/20
+    const PCV_RATE = 1 / 120;    // 1/120
+
+    // MSK
+    const MSK_LARGE_MONTHLY  = 1238.88;  // kafka.m7g.large  × 4
+    const MSK_XLARGE_MONTHLY = 1997.76;  // kafka.m7g.xlarge × 4
+    const MSK_LARGE_LIMIT    = 945;      // total cameras threshold
+
+    // MongoDB
+    const MONGO_M50_MONTHLY = 6019;
+    const MONGO_M60_MONTHLY = 10600;
+    const MONGO_M50_LIMIT   = 900;
+
+    // ─── Calculation Functions ────────────────────────────────────────────────
+
+    function calcEC2_DC(mDC) {
+      const g6  = Math.ceil(mDC / DC_CAMERAS_PER_G6);
+      const m7g = Math.ceil(mDC / DC_CAMERAS_PER_M7G);
+      const cost = (g6 * G6_MONTHLY + m7g * M7G_MONTHLY) / mDC;
+      return { cost, g6, m7g };
+    }
+
+    function calcEC2_PCV(mPCV) {
+      const g6  = Math.ceil(mPCV / PCV_CAMERAS_PER_G6);
+      const m7g = Math.ceil(mPCV / PCV_CAMERAS_PER_M7G);
+      const cost = (g6 * G6_MONTHLY + m7g * M7G_MONTHLY) / mPCV;
+      return { cost, g6, m7g };
+    }
+
+    function calcS3IT_DC(n) {
+      if (n === 1) return 10.02;
+      if (n === 2) return 15.93;
+      if (n === 3) return 21.84;
+      return 14.12 + 2.57 * n;
+    }
+
+    function calcS3IT_PCV(n) {
+      if (n === 1) return 1.67;
+      if (n === 2) return 2.66;
+      if (n === 3) return 3.65;
+      return 2.35 + 0.43 * n;
+    }
+
+    function calcMSK(mDC, mPCV, pipeline) {
+      const m = mDC + mPCV;
+      const isUpgrade = m > MSK_LARGE_LIMIT;
+      const mskTotal  = isUpgrade ? MSK_XLARGE_MONTHLY : MSK_LARGE_MONTHLY;
+      const scheme    = isUpgrade ? "kafka.m7g.xlarge" : "kafka.m7g.large";
+
+      const totalRate = mDC * DC_RATE + mPCV * PCV_RATE;
+      const cameraRate = pipeline === "DC" ? DC_RATE : PCV_RATE;
+      const cost = mskTotal * cameraRate / totalRate;
+
+      return { cost, scheme, isUpgrade };
+    }
+
+    function calcMongoDB(m) {
+      const isUpgrade = m > MONGO_M50_LIMIT;
+      const total = isUpgrade ? MONGO_M60_MONTHLY : MONGO_M50_MONTHLY;
+      const tier  = isUpgrade ? "M60" : "M50";
+      return { cost: total / m, tier, isUpgrade };
+    }
+
+    function calcTotal(n, mDC, mPCV, pipeline) {
+      const ec2    = pipeline === "DC" ? calcEC2_DC(mDC) : calcEC2_PCV(mPCV);
+      const s3     = pipeline === "DC" ? calcS3IT_DC(n)  : calcS3IT_PCV(n);
+      const msk    = calcMSK(mDC, mPCV, pipeline);
+      const mongo  = calcMongoDB(mDC + mPCV);
+      const total  = ec2.cost + s3 + msk.cost + mongo.cost;
+
+      return { ec2, s3, msk, mongo, total };
+    }
+
+    // ─── Formatting ───────────────────────────────────────────────────────────
+
+    function fmt(v) {
+      return "$" + v.toFixed(2);
+    }
+
+    // ─── DOM Helpers ──────────────────────────────────────────────────────────
+
+    function linkSlider(sliderId, inputId, min, max) {
+      const slider = document.getElementById(sliderId);
+      const input  = document.getElementById(inputId);
+
+      slider.addEventListener("input", () => {
+        input.value = slider.value;
+        render();
+      });
+
+      input.addEventListener("input", () => {
+        let v = parseInt(input.value, 10);
+        if (isNaN(v)) return;
+        v = Math.max(min, Math.min(max, v));
+        input.value = v;
+        slider.value = v;
+        render();
+      });
+    }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+
+    function render() {
+      const n        = parseInt(document.getElementById("n-input").value, 10);
+      const mDC      = parseInt(document.getElementById("mdc-input").value, 10);
+      const mPCV     = parseInt(document.getElementById("mpcv-input").value, 10);
+      const pipeline = document.querySelector("input[name='pipeline']:checked").value;
+
+      const r = calcTotal(n, mDC, mPCV, pipeline);
+
+      // EC2
+      document.getElementById("result-ec2").textContent = fmt(r.ec2.cost);
+      document.getElementById("ec2-detail").textContent =
+        `g6.xlarge × ${r.ec2.g6}  +  m7g.4xlarge × ${r.ec2.m7g}`;
+
+      // S3
+      document.getElementById("result-s3").textContent = fmt(r.s3);
+
+      // MSK
+      document.getElementById("result-msk").textContent = fmt(r.msk.cost);
+      const mskTag = document.getElementById("msk-tag");
+      mskTag.textContent = r.msk.scheme;
+      mskTag.className = "scheme-tag " + (r.msk.isUpgrade ? "upgrade" : "normal");
+
+      // MongoDB
+      document.getElementById("result-mongo").textContent = fmt(r.mongo.cost);
+      const mongoTag = document.getElementById("mongo-tag");
+      mongoTag.textContent = r.mongo.tier;
+      mongoTag.className = "scheme-tag " + (r.mongo.isUpgrade ? "upgrade" : "normal");
+
+      // Total
+      document.getElementById("result-total").textContent = fmt(r.total);
+
+      // Note
+      const m = mDC + mPCV;
+      const notes = [];
+      if (r.msk.isUpgrade)   notes.push("MSK 已升級至 kafka.m7g.xlarge（M=" + m + " > 945）");
+      if (r.mongo.isUpgrade) notes.push("MongoDB 已升級至 M60（M=" + m + " > 900）");
+      if (n < 4)             notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
+      document.getElementById("result-note").textContent = notes.join("　·　");
+
+      // ─── Proportion bars (added for visual only, does not affect calc) ────
+      const vals = [r.ec2.cost, r.s3, r.msk.cost, r.mongo.cost];
+      const max  = Math.max(...vals);
+      const ids  = ["bar-ec2", "bar-s3", "bar-msk", "bar-mongo"];
+      ids.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el) el.style.width = (max > 0 ? (vals[i] / max * 100) : 0) + "%";
+      });
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+
+    linkSlider("n-slider",    "n-input",    1,  24);
+    linkSlider("mdc-slider",  "mdc-input",  1,  3000);
+    linkSlider("mpcv-slider", "mpcv-input", 1, 10000);
+
+    document.querySelectorAll("input[name='pipeline']").forEach(r => {
+      r.addEventListener("change", render);
+    });
+
+    render();
+  </script>
+</body>
+</html>
