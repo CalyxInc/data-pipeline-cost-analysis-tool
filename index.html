@@ -89,13 +89,14 @@
     .panel-header {
       padding: 10px 16px;
       border-bottom: 1px solid var(--border);
-      font-size: 0.65rem;
-      letter-spacing: 0.14em;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: 8px;
+      font-weight: 600;
     }
 
     .panel-header::before {
@@ -294,9 +295,10 @@
     .cost-left { flex: 1; min-width: 0; }
 
     .cost-name {
-      font-size: 0.72rem;
+      font-size: 0.82rem;
       color: var(--text);
-      letter-spacing: 0.04em;
+      font-weight: 600;
+      letter-spacing: 0.03em;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -311,6 +313,14 @@
       text-overflow: ellipsis;
     }
 
+    .cost-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      min-width: 80px;
+    }
+
     .cost-value {
       font-size: 1.05rem;
       font-weight: 600;
@@ -318,8 +328,13 @@
       letter-spacing: 0.02em;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
-      text-align: right;
-      min-width: 72px;
+    }
+
+    .cost-pct {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
     }
 
     /* Scheme badge */
@@ -467,7 +482,10 @@
             <div class="cost-sub" id="ec2-detail">—</div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-ec2" style="width:0%"></div></div>
           </div>
-          <div class="cost-value" id="result-ec2">—</div>
+          <div class="cost-right">
+            <div class="cost-value" id="result-ec2">—</div>
+            <div class="cost-pct" id="pct-ec2">—</div>
+          </div>
         </div>
 
         <div class="cost-row">
@@ -475,7 +493,10 @@
             <div class="cost-name">S3 Intelligent-Tiering</div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-s3" style="width:0%"></div></div>
           </div>
-          <div class="cost-value" id="result-s3">—</div>
+          <div class="cost-right">
+            <div class="cost-value" id="result-s3">—</div>
+            <div class="cost-pct" id="pct-s3">—</div>
+          </div>
         </div>
 
         <div class="cost-row">
@@ -486,7 +507,10 @@
             </div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-msk" style="width:0%"></div></div>
           </div>
-          <div class="cost-value" id="result-msk">—</div>
+          <div class="cost-right">
+            <div class="cost-value" id="result-msk">—</div>
+            <div class="cost-pct" id="pct-msk">—</div>
+          </div>
         </div>
 
         <div class="cost-row">
@@ -497,7 +521,10 @@
             </div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-mongo" style="width:0%"></div></div>
           </div>
-          <div class="cost-value" id="result-mongo">—</div>
+          <div class="cost-right">
+            <div class="cost-value" id="result-mongo">—</div>
+            <div class="cost-pct" id="pct-mongo">—</div>
+          </div>
         </div>
 
       </div>
@@ -665,13 +692,16 @@
       if (n < 4)             notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
       document.getElementById("result-note").textContent = notes.join("　·　");
 
-      // ─── Proportion bars (added for visual only, does not affect calc) ────
-      const vals = [r.ec2.cost, r.s3, r.msk.cost, r.mongo.cost];
-      const max  = Math.max(...vals);
-      const ids  = ["bar-ec2", "bar-s3", "bar-msk", "bar-mongo"];
-      ids.forEach((id, i) => {
-        const el = document.getElementById(id);
-        if (el) el.style.width = (max > 0 ? (vals[i] / max * 100) : 0) + "%";
+      // ─── Proportion bars & percentages ───────────────────────────────────
+      const vals   = [r.ec2.cost, r.s3, r.msk.cost, r.mongo.cost];
+      const barIds = ["bar-ec2", "bar-s3", "bar-msk", "bar-mongo"];
+      const pctIds = ["pct-ec2", "pct-s3", "pct-msk", "pct-mongo"];
+      const maxVal = Math.max(...vals);
+      vals.forEach((v, i) => {
+        const bar = document.getElementById(barIds[i]);
+        if (bar) bar.style.width = (maxVal > 0 ? (v / maxVal * 100) : 0) + "%";
+        const pct = document.getElementById(pctIds[i]);
+        if (pct) pct.textContent = r.total > 0 ? (v / r.total * 100).toFixed(1) + "%" : "—";
       });
     }
 
