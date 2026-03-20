@@ -902,20 +902,6 @@
 
         </div>
 
-        <div class="cost-row">
-          <div class="cost-left">
-            <div class="cost-name">
-              MongoDB Atlas
-              <span class="scheme-tag normal" id="shared-mongo-tag">—</span>
-            </div>
-            <div class="cost-bar-wrap"><div class="cost-bar" id="shared-bar-mongo" style="width:0%"></div></div>
-          </div>
-          <div class="cost-right">
-            <div class="cost-value" id="shared-mongo">—</div>
-            <div class="cost-pct" id="shared-pct-mongo">—</div>
-          </div>
-        </div>
-
         <!-- ── MongoDB Capacity Planner ── -->
         <div id="mongo-capacity" style="padding:14px 0 10px">
           <div class="cost-name" style="margin-bottom:12px">MongoDB Atlas 容量規劃</div>
@@ -924,13 +910,26 @@
           <div style="display:flex;gap:8px;margin-bottom:14px">
             <div class="tier-card" id="mongo-card-m50">
               <div class="tier-card-name">M50 General</div>
-              <div class="tier-card-cost">$6,019 / 月</div>
+              <div class="tier-card-cost"><span id="mongo-m50-cost">$6,019</span> / 月</div>
               <div class="tier-card-limit">上限 2,700 eq（保守）</div>
             </div>
             <div class="tier-card" id="mongo-card-m60">
               <div class="tier-card-name">M60 General</div>
-              <div class="tier-card-cost">~$10,600 / 月</div>
+              <div class="tier-card-cost"><span id="mongo-m60-cost">~$10,600</span> / 月</div>
               <div class="tier-card-limit">上限 5,400 eq（保守）</div>
+            </div>
+          </div>
+
+          <!-- Storage slider -->
+          <div class="param" style="margin-bottom:12px">
+            <div class="param-header">
+              <span class="param-name">MongoDB Storage Size</span>
+              <span class="param-range">160 – 10,000 GB</span>
+            </div>
+            <div class="param-controls">
+              <input type="range" id="mongo-storage-slider" min="160" max="10000" value="2215">
+              <input type="number" id="mongo-storage-input" min="160" max="10000" value="2215">
+              <span style="font-size:0.6rem;color:var(--muted);margin-left:4px">GB</span>
             </div>
           </div>
 
@@ -1130,8 +1129,7 @@
     const MSK_XLARGE_THROUGHPUT = 62;   // msg/sec capacity (m7g.xlarge × 4, after rebalance)
     const MSK_PER_CAMERA_DC  = 2.00;    // fixed per-camera MSK cost (DC)
     const MSK_PER_CAMERA_PCV = 0.33;    // fixed per-camera MSK cost (PCV)
-    const MONGO_PER_CAMERA_DC  = 11.28; // fixed per-camera MongoDB cost (DC)
-    const MONGO_PER_CAMERA_PCV = 1.88;  // fixed per-camera MongoDB cost (PCV)
+    // MONGO_PER_CAMERA is now dynamic — computed from calcMongoDB() in render()
 
     // EKS — Production clusters (fixed, On Demand)
     // Tokyo (ap-northeast-1): production-graviton2 × 28 t4g.medium + production-amd64 × 1 m6a.xlarge
@@ -1148,15 +1146,42 @@
 
     const EKS_TOTAL = EKS_TOKYO_TOTAL + EKS_OREGON_TOTAL; // 2107.992
 
-    // MongoDB
-    const MONGO_M50_MONTHLY  = 6019;
-    const MONGO_M60_MONTHLY  = 10600;
-    const MONGO_M50_LIMIT    = 900;
+    // MongoDB — pricing components
+    const MONGO_NODES          = 3;
+    const MONGO_STORAGE_PER_GB = 0.10;    // $/GB-month per node (Atlas M50/M60, ap-northeast-1)
+    const MONGO_M50_COMPUTE    = 5011.20; // M50 $2.32/hr × 720hr × 3 nodes
+    const MONGO_M50_INCL_GB    = 160;     // M50 included storage per node
+    const MONGO_M60_COMPUTE    = 9592.86; // M60 compute base $/month (3-node replica set)
+    const MONGO_M60_INCL_GB    = 160;     // M60 included storage per node
+    // Backup — incremental model based on Oplog 實測
+    const MONGO_BACKUP_PER_GB     = 0.085;  // $/GB-month Atlas Cloud Backup
+    const MONGO_OPLOG_HOURLY      = 1.6;    // GB/hr (Oplog 實測 2026-03-17)
+    const MONGO_DAILY_SNAPSHOTS   = 60;     // daily retention (60 天)
+    const MONGO_HOURLY_SNAPSHOTS  = 72;     // hourly retention (3 天 × 24)
+    const MONGO_M50_LIMIT      = 900;
     const MONGO_DC_WEIGHT    = 6;     // DC 相機對 MongoDB 的負載倍率
     const MONGO_M50_EQ_LIMIT = 2700;  // M50 保守等效單位上限
     const MONGO_M60_EQ_LIMIT = 5400;  // M60 保守等效單位上限
 
     // ─── Calculation Functions ────────────────────────────────────────────────
+
+    function getMongoStorageGB() {
+      return parseInt(document.getElementById("mongo-storage-input").value, 10) || 2215;
+    }
+
+    function calcMongoMonthly(tier) {
+      const gb = getMongoStorageGB();
+      const compute = tier === "M60" ? MONGO_M60_COMPUTE : MONGO_M50_COMPUTE;
+      const inclGB  = tier === "M60" ? MONGO_M60_INCL_GB : MONGO_M50_INCL_GB;
+      // Storage cost
+      const storage = Math.max(0, gb - inclGB) * MONGO_STORAGE_PER_GB * MONGO_NODES;
+      // Backup cost (incremental model: base snapshot + daily increments + hourly increments)
+      const dailyChange   = MONGO_OPLOG_HOURLY * 24;                            // 38.4 GB/day
+      const dailySnapshot = gb + (MONGO_DAILY_SNAPSHOTS - 1) * dailyChange;     // base + 59 increments
+      const hourlySnapshot = MONGO_HOURLY_SNAPSHOTS * MONGO_OPLOG_HOURLY;       // 72 × 1.6
+      const backup = (dailySnapshot + hourlySnapshot) * MONGO_BACKUP_PER_GB;
+      return compute + storage + backup;
+    }
 
     function calcEC2_DC(mDC) {
       const g6  = Math.ceil(mDC / DC_CAMERAS_PER_G6);
@@ -1218,8 +1243,8 @@
     function calcMongoDB(mDC, mPCV) {
       const W = mDC * MONGO_DC_WEIGHT + mPCV;
       const isUpgrade = W > MONGO_M50_EQ_LIMIT;
-      const total = isUpgrade ? MONGO_M60_MONTHLY : MONGO_M50_MONTHLY;
       const tier  = isUpgrade ? "M60" : "M50";
+      const total = calcMongoMonthly(tier);
       return { cost: total / (mDC + mPCV), tier, isUpgrade, totalMonthly: total };
     }
 
@@ -1304,8 +1329,8 @@
       const mskPerCamera = pipeline === "DC" ? MSK_PER_CAMERA_DC : MSK_PER_CAMERA_PCV;
       document.getElementById("result-msk").textContent = fmt(mskPerCamera);
 
-      // MongoDB (per-camera constant)
-      const mongoPerCamera = pipeline === "DC" ? MONGO_PER_CAMERA_DC : MONGO_PER_CAMERA_PCV;
+      // MongoDB (dynamic per-camera from calcMongoDB)
+      const mongoPerCamera = r.mongo.cost;
       document.getElementById("result-mongo").textContent = fmt(mongoPerCamera);
 
       // Total (EC2 + S3 + MSK + MongoDB)
@@ -1330,21 +1355,6 @@
         if (pct) pct.textContent = perCameraTotal > 0 ? (v / perCameraTotal * 100).toFixed(1) + "%" : "—";
       });
 
-      // ─── Section 02: Shared Infrastructure ───────────────────────────────
-      document.getElementById("shared-mongo").textContent = fmt(r.mongo.totalMonthly);
-      const sharedMongoTag = document.getElementById("shared-mongo-tag");
-      sharedMongoTag.textContent = r.mongo.tier;
-      sharedMongoTag.className = "scheme-tag " + (r.mongo.isUpgrade ? "upgrade" : "normal");
-
-      const sharedNotes = [];
-      if (r.mongo.isUpgrade) sharedNotes.push("MongoDB 已升級至 M60（M=" + m + " > 900）");
-      document.getElementById("shared-note").textContent = sharedNotes.join("　·　");
-
-      // ─── Section 02 proportion bars ───────────────────────────────────────
-      const bar = document.getElementById("shared-bar-mongo");
-      if (bar) bar.style.width = "100%";
-      const pct = document.getElementById("shared-pct-mongo");
-      if (pct) pct.textContent = "100%";
     }
 
     // ─── Init ─────────────────────────────────────────────────────────────────
@@ -1428,6 +1438,12 @@
       document.getElementById("mongo-card-m60").className =
         "tier-card" + (c.isOverflow ? " active overload" : c.isUpgrade ? " active upgrade" : "");
 
+      // Tier card costs (dynamic based on storage)
+      const m50Cost = calcMongoMonthly("M50");
+      const m60Cost = calcMongoMonthly("M60");
+      document.getElementById("mongo-m50-cost").textContent = "$" + Math.round(m50Cost).toLocaleString();
+      document.getElementById("mongo-m60-cost").textContent = "~$" + Math.round(m60Cost).toLocaleString();
+
       // Capacity bar
       const bar    = document.getElementById("mongo-cap-bar");
       const barDC  = document.getElementById("mongo-bar-dc");
@@ -1480,6 +1496,24 @@
       }
       wire("mongo-dc-slider",  "mongo-dc-input",  340, 3000);
       wire("mongo-pcv-slider", "mongo-pcv-input", 240, 10000);
+
+      // Storage slider wiring — affects all sections
+      function onStorageChange() {
+        renderMongoCapacity();
+        render();
+        renderFleet();
+      }
+      const storageSl = document.getElementById("mongo-storage-slider");
+      const storageIp = document.getElementById("mongo-storage-input");
+      storageSl.addEventListener("input", () => { storageIp.value = storageSl.value; onStorageChange(); });
+      storageIp.addEventListener("input", () => {
+        let v = parseInt(storageIp.value, 10);
+        if (isNaN(v)) return;
+        v = Math.max(160, Math.min(10000, v));
+        storageIp.value = v; storageSl.value = v;
+        onStorageChange();
+      });
+
       renderMongoCapacity();
     })();
 
@@ -1518,7 +1552,7 @@
       const W = fleetDC * MONGO_DC_WEIGHT + fleetPCV;
       const isUpgrade = W > MONGO_M50_EQ_LIMIT;
       return {
-        cost:      isUpgrade ? MONGO_M60_MONTHLY : MONGO_M50_MONTHLY,
+        cost:      calcMongoMonthly(isUpgrade ? "M60" : "M50"),
         tier:      isUpgrade ? "M60" : "M50",
         isUpgrade, W
       };
