@@ -16,6 +16,10 @@
       --teal:       #0077cc;
       --teal-dim:   rgba(0,119,204,0.07);
       --teal-glow:  rgba(0,119,204,0.15);
+      --purple:     #7c3aed;
+      --purple-dim: rgba(124,58,237,0.07);
+      --red:        #dc2626;
+      --red-dim:    rgba(220,38,38,0.08);
       --amber:      #b45309;
       --amber-dim:  rgba(180,83,9,0.08);
       --green:      #0d7a55;
@@ -391,6 +395,298 @@
       transition: width 0.3s ease;
       opacity: 0.5;
     }
+
+    /* ── Section dividers ── */
+    .section-label {
+      max-width: 1000px;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label-text {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .section-label-text em {
+      font-style: normal;
+      color: var(--text);
+      margin-right: 6px;
+    }
+
+    .section-label-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-gap {
+      max-width: 1000px;
+      margin: 0 auto;
+      height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Fleet Total Cost section ── */
+    .fleet-section {
+      max-width: 1000px;
+      margin: 16px auto 0;
+    }
+
+    .batch-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .batch-row:last-child { border-bottom: none; }
+
+    .batch-num {
+      font-size: 0.65rem;
+      color: var(--muted);
+      min-width: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .batch-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .batch-field-label {
+      font-size: 0.60rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .batch-field input[type="number"] {
+      width: 68px;
+    }
+
+    .batch-subtotal {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .batch-subtotal-label {
+      font-size: 0.58rem;
+      color: var(--dim);
+      display: block;
+      text-align: right;
+      margin-bottom: 1px;
+    }
+
+    .batch-delete {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.70rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      line-height: 1;
+    }
+
+    .batch-delete:hover:not(:disabled) {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .batch-delete:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .add-batch-btn {
+      background: none;
+      border: 1px dashed var(--border-hi);
+      border-radius: 3px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.70rem;
+      padding: 7px 0;
+      cursor: pointer;
+      width: 100%;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 8px;
+    }
+
+    .add-batch-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* ── MSK Capacity Planner ── */
+    .tier-card {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 10px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .tier-card-name {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    .tier-card-cost {
+      font-size: 0.80rem;
+      color: var(--text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tier-card-limit {
+      font-size: 0.60rem;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    .tier-card.active {
+      border-color: rgba(0,119,204,0.4);
+      background: var(--teal-dim);
+    }
+
+    .tier-card.active .tier-card-name {
+      color: var(--teal);
+    }
+
+    .tier-card.active.upgrade {
+      border-color: rgba(180,83,9,0.35);
+      background: var(--amber-dim);
+    }
+
+    .tier-card.active.upgrade .tier-card-name,
+    .tier-card.active.upgrade .tier-card-cost {
+      color: var(--amber);
+    }
+
+    .msk-cap-bar {
+      display: flex;
+      height: 8px;
+      background: var(--dim);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 2px 0 6px;
+    }
+
+    #msk-bar-dc {
+      height: 100%;
+      background: var(--teal);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    #msk-bar-pcv {
+      height: 100%;
+      background: rgba(13,122,85,0.45);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    .msk-cap-bar.overflow #msk-bar-dc,
+    .msk-cap-bar.overflow #msk-bar-pcv {
+      background: var(--amber);
+      opacity: 1;
+    }
+
+    .msk-cap-summary {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .msk-cap-warning {
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+
+    /* ── MongoDB capacity planner ── */
+    .tier-card.active.overload {
+      border-color: rgba(220,38,38,0.35);
+      background: var(--red-dim);
+    }
+
+    .tier-card.active.overload .tier-card-name,
+    .tier-card.active.overload .tier-card-cost {
+      color: var(--red);
+    }
+
+    .mongo-cap-bar {
+      display: flex;
+      height: 8px;
+      background: var(--dim);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 2px 0 6px;
+    }
+
+    #mongo-bar-dc {
+      height: 100%;
+      background: var(--purple);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    #mongo-bar-pcv {
+      height: 100%;
+      background: rgba(124,58,237,0.38);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    .mongo-cap-bar.overflow #mongo-bar-dc,
+    .mongo-cap-bar.overflow #mongo-bar-pcv {
+      background: var(--red);
+      opacity: 1;
+    }
+
+    .mongo-cap-summary {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mongo-cap-detail {
+      font-size: 0.60rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+
+    .mongo-cap-warning {
+      font-size: 0.62rem;
+      color: var(--red);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -399,6 +695,11 @@
     <span class="title">Cost Estimator</span>
     <span class="subtitle">單台相機月費試算<span class="dot">·</span>DC &amp; PCV Pipeline</span>
   </header>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>01</em>單台相機月費 &nbsp;·&nbsp; Per-Camera Cost</span>
+    <span class="section-label-line"></span>
+  </div>
 
   <div class="grid">
 
@@ -434,26 +735,26 @@
         </div>
 
         <!-- M_DC -->
-        <div class="param">
+        <div class="param" id="param-mdc">
           <div class="param-header">
             <span class="param-name"><em>M<sub style="font-size:0.7em">DC</sub></em> &nbsp;DC 相機總數</span>
             <span class="param-range">1 – 3,000</span>
           </div>
           <div class="param-controls">
-            <input type="range" id="mdc-slider" min="1" max="3000" value="340">
-            <input type="number" id="mdc-input" min="1" max="3000" value="340">
+            <input type="range" id="mdc-slider" min="340" max="3000" value="340">
+            <input type="number" id="mdc-input" min="340" max="3000" value="340">
           </div>
         </div>
 
         <!-- M_PCV -->
-        <div class="param">
+        <div class="param" id="param-mpcv">
           <div class="param-header">
             <span class="param-name"><em>M<sub style="font-size:0.7em">PCV</sub></em> &nbsp;PCV 相機總數</span>
             <span class="param-range">1 – 10,000</span>
           </div>
           <div class="param-controls">
-            <input type="range" id="mpcv-slider" min="1" max="10000" value="240">
-            <input type="number" id="mpcv-input" min="1" max="10000" value="240">
+            <input type="range" id="mpcv-slider" min="240" max="10000" value="240">
+            <input type="number" id="mpcv-input" min="240" max="10000" value="240">
           </div>
         </div>
 
@@ -501,10 +802,7 @@
 
         <div class="cost-row">
           <div class="cost-left">
-            <div class="cost-name">
-              MSK
-              <span class="scheme-tag normal" id="msk-tag">—</span>
-            </div>
+            <div class="cost-name">MSK</div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-msk" style="width:0%"></div></div>
           </div>
           <div class="cost-right">
@@ -515,10 +813,7 @@
 
         <div class="cost-row">
           <div class="cost-left">
-            <div class="cost-name">
-              MongoDB Atlas
-              <span class="scheme-tag normal" id="mongo-tag">—</span>
-            </div>
+            <div class="cost-name">MongoDB</div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-mongo" style="width:0%"></div></div>
           </div>
           <div class="cost-right">
@@ -527,6 +822,7 @@
           </div>
         </div>
 
+
       </div>
 
       <div class="result-note-wrap">
@@ -534,6 +830,279 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="section-gap"></div>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>02</em>共享基礎設施 &nbsp;·&nbsp; Shared Infrastructure</span>
+    <span class="section-label-line"></span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="panel">
+      <div class="panel-header">Shared Infrastructure Cost <span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">total / month</span></div>
+      <div class="cost-rows">
+
+        <!-- ── MSK Capacity Planner ── -->
+        <div id="msk-capacity" style="padding:14px 0 10px;border-bottom:1px solid var(--border)">
+          <div class="cost-name" style="margin-bottom:12px">MSK</div>
+
+          <!-- Tier cards -->
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <div class="tier-card" id="msk-card-large">
+              <div class="tier-card-name">kafka.m7g.large</div>
+              <div class="tier-card-cost">$1,238.88 / 月</div>
+              <div class="tier-card-limit">容量 31 msg/sec</div>
+            </div>
+            <div class="tier-card" id="msk-card-xlarge">
+              <div class="tier-card-name">kafka.m7g.xlarge</div>
+              <div class="tier-card-cost">$1,997.76 / 月</div>
+              <div class="tier-card-limit">容量 62 msg/sec</div>
+            </div>
+          </div>
+
+          <!-- DC slider -->
+          <div class="param" style="margin-bottom:12px">
+            <div class="param-header">
+              <span class="param-name"><em>DC</em> &nbsp;相機數（規劃）</span>
+              <span class="param-range">0 – 3,000</span>
+            </div>
+            <div class="param-controls">
+              <input type="range" id="msk-dc-slider" min="340" max="3000" value="340">
+              <input type="number" id="msk-dc-input" min="340" max="3000" value="340">
+            </div>
+          </div>
+
+          <!-- PCV slider -->
+          <div class="param" style="margin-bottom:12px">
+            <div class="param-header">
+              <span class="param-name"><em>PCV</em> &nbsp;相機數（規劃）</span>
+              <span class="param-range">0 – 10,000</span>
+            </div>
+            <div class="param-controls">
+              <input type="range" id="msk-pcv-slider" min="240" max="10000" value="240">
+              <input type="number" id="msk-pcv-input" min="240" max="10000" value="240">
+            </div>
+          </div>
+
+          <!-- Capacity bar -->
+          <div class="msk-cap-bar" id="msk-cap-bar">
+            <div id="msk-bar-dc" style="width:0%"></div>
+            <div id="msk-bar-pcv" style="width:0%"></div>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:5px;font-size:0.58rem;color:var(--muted);letter-spacing:0.04em">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--teal);vertical-align:middle;margin-right:4px"></span>DC 相機</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(13,122,85,0.45);vertical-align:middle;margin-right:4px"></span>PCV 相機</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--dim);vertical-align:middle;margin-right:4px"></span>剩餘容量</span>
+          </div>
+          <div class="msk-cap-summary" id="msk-cap-summary">—</div>
+          <div class="msk-cap-warning" id="msk-cap-warning" style="display:none">⚠ 已超出 kafka.m7g.xlarge 最大容量（1,890 台）</div>
+          <div style="font-size:0.58rem;color:var(--dim);margin-top:6px;letter-spacing:0.04em">獨立規劃用，不影響上方試算</div>
+
+        </div>
+
+        <div class="cost-row">
+          <div class="cost-left">
+            <div class="cost-name">
+              MongoDB Atlas
+              <span class="scheme-tag normal" id="shared-mongo-tag">—</span>
+            </div>
+            <div class="cost-bar-wrap"><div class="cost-bar" id="shared-bar-mongo" style="width:0%"></div></div>
+          </div>
+          <div class="cost-right">
+            <div class="cost-value" id="shared-mongo">—</div>
+            <div class="cost-pct" id="shared-pct-mongo">—</div>
+          </div>
+        </div>
+
+        <!-- ── MongoDB Capacity Planner ── -->
+        <div id="mongo-capacity" style="padding:14px 0 10px">
+          <div class="cost-name" style="margin-bottom:12px">MongoDB Atlas 容量規劃</div>
+
+          <!-- Tier cards -->
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <div class="tier-card" id="mongo-card-m50">
+              <div class="tier-card-name">M50 General</div>
+              <div class="tier-card-cost">$6,019 / 月</div>
+              <div class="tier-card-limit">上限 2,700 eq（保守）</div>
+            </div>
+            <div class="tier-card" id="mongo-card-m60">
+              <div class="tier-card-name">M60 General</div>
+              <div class="tier-card-cost">~$10,600 / 月</div>
+              <div class="tier-card-limit">上限 5,400 eq（保守）</div>
+            </div>
+          </div>
+
+          <!-- DC slider -->
+          <div class="param" style="margin-bottom:12px">
+            <div class="param-header">
+              <span class="param-name"><em>DC</em> &nbsp;相機數（規劃）</span>
+              <span class="param-range">0 – 3,000</span>
+            </div>
+            <div class="param-controls">
+              <input type="range" id="mongo-dc-slider" min="340" max="3000" value="340">
+              <input type="number" id="mongo-dc-input" min="340" max="3000" value="340">
+            </div>
+          </div>
+
+          <!-- PCV slider -->
+          <div class="param" style="margin-bottom:12px">
+            <div class="param-header">
+              <span class="param-name"><em>PCV</em> &nbsp;相機數（規劃）</span>
+              <span class="param-range">0 – 10,000</span>
+            </div>
+            <div class="param-controls">
+              <input type="range" id="mongo-pcv-slider" min="240" max="10000" value="240">
+              <input type="number" id="mongo-pcv-input" min="240" max="10000" value="240">
+            </div>
+          </div>
+
+          <!-- Capacity bar -->
+          <div class="mongo-cap-bar" id="mongo-cap-bar">
+            <div id="mongo-bar-dc" style="width:0%"></div>
+            <div id="mongo-bar-pcv" style="width:0%"></div>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:5px;font-size:0.58rem;color:var(--muted);letter-spacing:0.04em">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--purple);vertical-align:middle;margin-right:4px"></span>DC 相機</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(124,58,237,0.38);vertical-align:middle;margin-right:4px"></span>PCV 相機</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--dim);vertical-align:middle;margin-right:4px"></span>剩餘容量</span>
+          </div>
+          <div class="mongo-cap-summary" id="mongo-cap-summary">—</div>
+          <div class="mongo-cap-detail" id="mongo-cap-detail"></div>
+          <div class="mongo-cap-warning" id="mongo-cap-warning" style="display:none">⚠ 已超出 M60 最大容量（5,400 eq）</div>
+          <div style="font-size:0.58rem;color:var(--dim);margin-top:6px;letter-spacing:0.04em">獨立規劃用，不影響上方試算</div>
+
+        </div>
+
+      </div>
+      <div class="result-note-wrap">
+        <div id="shared-note"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>03</em>艦隊總成本 &nbsp;·&nbsp; Fleet Total Cost</span>
+    <span class="section-label-line"></span>
+  </div>
+
+  <!-- ── Fleet Total Cost ── -->
+  <div class="fleet-section">
+    <div class="panel">
+      <div class="panel-header">Fleet Total Cost <span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">all cameras / month</span></div>
+
+      <!-- Batch inputs -->
+      <div class="panel-body">
+        <div style="font-size:0.62rem;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:10px">Batches</div>
+        <div id="batch-list"></div>
+        <button class="add-batch-btn" id="add-batch-btn">+ Add Batch</button>
+      </div>
+
+      <!-- Fleet results -->
+      <div style="border-top:1px solid var(--border)">
+
+        <!-- Hero total -->
+        <div class="hero">
+          <div>
+            <div class="hero-label">艦隊月費合計</div>
+            <div class="hero-value" id="fleet-total">—</div>
+          </div>
+          <div class="hero-unit">USD / 月</div>
+        </div>
+
+        <!-- Breakdown rows -->
+        <div class="cost-rows">
+
+          <div class="cost-row">
+            <div class="cost-left">
+              <div class="cost-name">EC2 算力合計</div>
+              <div class="cost-sub" id="fleet-ec2-detail">—</div>
+              <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-ec2" style="width:0%"></div></div>
+            </div>
+            <div class="cost-right">
+              <div class="cost-value" id="fleet-ec2">—</div>
+              <div class="cost-pct" id="fleet-pct-ec2">—</div>
+            </div>
+          </div>
+
+          <div class="cost-row">
+            <div class="cost-left">
+              <div class="cost-name">S3 IT 合計</div>
+              <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-s3" style="width:0%"></div></div>
+            </div>
+            <div class="cost-right">
+              <div class="cost-value" id="fleet-s3">—</div>
+              <div class="cost-pct" id="fleet-pct-s3">—</div>
+            </div>
+          </div>
+
+          <div class="cost-row">
+            <div class="cost-left">
+              <div class="cost-name">
+                MSK
+                <span class="scheme-tag normal" id="fleet-msk-tag">—</span>
+              </div>
+              <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-msk" style="width:0%"></div></div>
+            </div>
+            <div class="cost-right">
+              <div class="cost-value" id="fleet-msk">—</div>
+              <div class="cost-pct" id="fleet-pct-msk">—</div>
+            </div>
+          </div>
+
+          <div class="cost-row">
+            <div class="cost-left">
+              <div class="cost-name">
+                MongoDB Atlas
+                <span class="scheme-tag normal" id="fleet-mongo-tag">—</span>
+              </div>
+              <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-mongo" style="width:0%"></div></div>
+            </div>
+            <div class="cost-right">
+              <div class="cost-value" id="fleet-mongo">—</div>
+              <div class="cost-pct" id="fleet-pct-mongo">—</div>
+            </div>
+          </div>
+
+          <div class="cost-row" style="align-items:flex-start">
+            <div class="cost-left">
+              <div class="cost-name">EKS <span style="font-size:0.60rem;color:var(--muted);font-weight:400;letter-spacing:0">2 clusters</span></div>
+              <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-eks" style="width:0%"></div></div>
+              <!-- Tokyo cluster detail -->
+              <div class="cost-sub" style="margin-top:8px;line-height:1.7">
+                <span style="color:var(--fg);font-weight:500">Tokyo</span>
+                <span style="color:var(--muted);font-size:0.58rem;margin-left:4px">ap-northeast-1 · 29 nodes · $1,117.94</span><br>
+                <span style="padding-left:8px">t4g.medium × 28 &nbsp;$31.54/mo = $883.01</span><br>
+                <span style="padding-left:8px">m6a.xlarge × 1 &nbsp;&nbsp;$162.94/mo = $162.94</span><br>
+                <span style="padding-left:8px">Cluster 管理費 &nbsp;&nbsp;$0.10/hr × 720hr = $72.00</span>
+              </div>
+              <!-- Oregon cluster detail -->
+              <div class="cost-sub" style="margin-top:8px;line-height:1.7">
+                <span style="color:var(--fg);font-weight:500">Oregon</span>
+                <span style="color:var(--muted);font-size:0.58rem;margin-left:4px">us-west-2 · 16 nodes · $990.05</span><br>
+                <span style="padding-left:8px">t4g.medium × 14 &nbsp;$24.53/mo = $343.39</span><br>
+                <span style="padding-left:8px">t4g.xlarge × 1 &nbsp;&nbsp;$98.11/mo = $98.11</span><br>
+                <span style="padding-left:8px">m7g.4xlarge × 1 &nbsp;$476.54/mo = $476.54</span><br>
+                <span style="padding-left:8px">Cluster 管理費 &nbsp;&nbsp;$0.10/hr × 720hr = $72.00</span>
+              </div>
+            </div>
+            <div class="cost-right">
+              <div class="cost-value" id="fleet-eks">—</div>
+              <div class="cost-pct" id="fleet-pct-eks">—</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="result-note-wrap">
+          <div id="fleet-note"></div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <script>
@@ -557,12 +1126,35 @@
     // MSK
     const MSK_LARGE_MONTHLY  = 1238.88;  // kafka.m7g.large  × 4
     const MSK_XLARGE_MONTHLY = 1997.76;  // kafka.m7g.xlarge × 4
-    const MSK_LARGE_LIMIT    = 945;      // total cameras threshold
+    const MSK_LARGE_THROUGHPUT  = 31;   // msg/sec capacity (m7g.large  × 4, after rebalance)
+    const MSK_XLARGE_THROUGHPUT = 62;   // msg/sec capacity (m7g.xlarge × 4, after rebalance)
+    const MSK_PER_CAMERA_DC  = 2.00;    // fixed per-camera MSK cost (DC)
+    const MSK_PER_CAMERA_PCV = 0.33;    // fixed per-camera MSK cost (PCV)
+    const MONGO_PER_CAMERA_DC  = 11.28; // fixed per-camera MongoDB cost (DC)
+    const MONGO_PER_CAMERA_PCV = 1.88;  // fixed per-camera MongoDB cost (PCV)
+
+    // EKS — Production clusters (fixed, On Demand)
+    // Tokyo (ap-northeast-1): production-graviton2 × 28 t4g.medium + production-amd64 × 1 m6a.xlarge
+    const EKS_TOKYO_T4G_MEDIUM  = 28 * 31.536;   // 883.008
+    const EKS_TOKYO_M6A_XLARGE  = 1  * 162.936;  // 162.936
+    const EKS_CLUSTER_FEE       = 72.00;           // $0.10/hr × 720hr per cluster
+    const EKS_TOKYO_TOTAL       = EKS_TOKYO_T4G_MEDIUM + EKS_TOKYO_M6A_XLARGE + EKS_CLUSTER_FEE; // 1117.944
+
+    // Oregon (us-west-2): production-graviton2 × 14 t4g.medium + karpenter t4g.xlarge × 1 + m7g.4xlarge × 1
+    const EKS_OREGON_T4G_MEDIUM  = 14 * 24.528;   // 343.392
+    const EKS_OREGON_T4G_XLARGE  = 1  * 98.112;   // 98.112
+    const EKS_OREGON_M7G_4XLARGE = 1  * 476.544;  // 476.544
+    const EKS_OREGON_TOTAL       = EKS_OREGON_T4G_MEDIUM + EKS_OREGON_T4G_XLARGE + EKS_OREGON_M7G_4XLARGE + EKS_CLUSTER_FEE; // 990.048
+
+    const EKS_TOTAL = EKS_TOKYO_TOTAL + EKS_OREGON_TOTAL; // 2107.992
 
     // MongoDB
-    const MONGO_M50_MONTHLY = 6019;
-    const MONGO_M60_MONTHLY = 10600;
-    const MONGO_M50_LIMIT   = 900;
+    const MONGO_M50_MONTHLY  = 6019;
+    const MONGO_M60_MONTHLY  = 10600;
+    const MONGO_M50_LIMIT    = 900;
+    const MONGO_DC_WEIGHT    = 6;     // DC 相機對 MongoDB 的負載倍率
+    const MONGO_M50_EQ_LIMIT = 2700;  // M50 保守等效單位上限
+    const MONGO_M60_EQ_LIMIT = 5400;  // M60 保守等效單位上限
 
     // ─── Calculation Functions ────────────────────────────────────────────────
 
@@ -595,30 +1187,65 @@
     }
 
     function calcMSK(mDC, mPCV, pipeline) {
-      const m = mDC + mPCV;
-      const isUpgrade = m > MSK_LARGE_LIMIT;
+      const totalRate = mDC * DC_RATE + mPCV * PCV_RATE;
+      const isUpgrade = totalRate > MSK_LARGE_THROUGHPUT;
       const mskTotal  = isUpgrade ? MSK_XLARGE_MONTHLY : MSK_LARGE_MONTHLY;
       const scheme    = isUpgrade ? "kafka.m7g.xlarge" : "kafka.m7g.large";
-
-      const totalRate = mDC * DC_RATE + mPCV * PCV_RATE;
       const cameraRate = pipeline === "DC" ? DC_RATE : PCV_RATE;
       const cost = mskTotal * cameraRate / totalRate;
 
-      return { cost, scheme, isUpgrade };
+      return { cost, scheme, isUpgrade, totalMonthly: mskTotal };
     }
 
-    function calcMongoDB(m) {
-      const isUpgrade = m > MONGO_M50_LIMIT;
+    function calcMSKCapacity(mskDC, mskPCV) {
+      const dcRate  = mskDC  * DC_RATE;
+      const pcvRate = mskPCV * PCV_RATE;
+      const total   = dcRate + pcvRate;                         // msg/sec
+      const isUpgrade  = total > MSK_LARGE_THROUGHPUT;
+      const isOverflow = total > MSK_XLARGE_THROUGHPUT;
+      const limit  = isUpgrade ? MSK_XLARGE_THROUGHPUT : MSK_LARGE_THROUGHPUT;
+      const tier   = isUpgrade ? "kafka.m7g.xlarge" : "kafka.m7g.large";
+      const pctDC  = limit > 0 ? dcRate  / limit * 100 : 0;
+      const pctPCV = limit > 0 ? pcvRate / limit * 100 : 0;
+      const pctUsed = limit > 0 ? Math.min(total / limit * 100, 100) : 0;
+      const remainRate = Math.max(0, limit - total);
+      const remainDC   = Math.floor(remainRate / DC_RATE);
+      const remainPCV  = Math.floor(remainRate / PCV_RATE);
+      return { total, limit, dcRate, pcvRate, pctDC, pctPCV, pctUsed,
+               remainRate, remainDC, remainPCV, tier, isUpgrade, isOverflow };
+    }
+
+    function calcMongoDB(mDC, mPCV) {
+      const W = mDC * MONGO_DC_WEIGHT + mPCV;
+      const isUpgrade = W > MONGO_M50_EQ_LIMIT;
       const total = isUpgrade ? MONGO_M60_MONTHLY : MONGO_M50_MONTHLY;
       const tier  = isUpgrade ? "M60" : "M50";
-      return { cost: total / m, tier, isUpgrade };
+      return { cost: total / (mDC + mPCV), tier, isUpgrade, totalMonthly: total };
+    }
+
+    function calcMongoCapacity(mongoDC, mongoPCV) {
+      const dcEq  = mongoDC * MONGO_DC_WEIGHT;
+      const pcvEq = mongoPCV;
+      const W     = dcEq + pcvEq;
+      const isUpgrade  = W > MONGO_M50_EQ_LIMIT;
+      const isOverflow = W > MONGO_M60_EQ_LIMIT;
+      const limit  = isUpgrade ? MONGO_M60_EQ_LIMIT : MONGO_M50_EQ_LIMIT;
+      const tier   = isUpgrade ? "M60" : "M50";
+      const pctDC  = limit > 0 ? dcEq  / limit * 100 : 0;
+      const pctPCV = limit > 0 ? pcvEq / limit * 100 : 0;
+      const remain = Math.max(0, limit - W);
+      const remainDC  = Math.floor(remain / MONGO_DC_WEIGHT);
+      const remainPCV = remain;
+      return { W, limit, dcEq, pcvEq, pctDC, pctPCV,
+               remain, remainDC, remainPCV, tier, isUpgrade, isOverflow,
+               mongoDC, mongoPCV };
     }
 
     function calcTotal(n, mDC, mPCV, pipeline) {
       const ec2    = pipeline === "DC" ? calcEC2_DC(mDC) : calcEC2_PCV(mPCV);
       const s3     = pipeline === "DC" ? calcS3IT_DC(n)  : calcS3IT_PCV(n);
       const msk    = calcMSK(mDC, mPCV, pipeline);
-      const mongo  = calcMongoDB(mDC + mPCV);
+      const mongo  = calcMongoDB(mDC, mPCV);
       const total  = ec2.cost + s3 + msk.cost + mongo.cost;
 
       return { ec2, s3, msk, mongo, total };
@@ -659,6 +1286,10 @@
       const mPCV     = parseInt(document.getElementById("mpcv-input").value, 10);
       const pipeline = document.querySelector("input[name='pipeline']:checked").value;
 
+      // Show only the relevant camera-count slider
+      document.getElementById("param-mdc").style.display  = pipeline === "DC"  ? "" : "none";
+      document.getElementById("param-mpcv").style.display = pipeline === "PCV" ? "" : "none";
+
       const r = calcTotal(n, mDC, mPCV, pipeline);
 
       // EC2
@@ -669,53 +1300,349 @@
       // S3
       document.getElementById("result-s3").textContent = fmt(r.s3);
 
-      // MSK
-      document.getElementById("result-msk").textContent = fmt(r.msk.cost);
-      const mskTag = document.getElementById("msk-tag");
-      mskTag.textContent = r.msk.scheme;
-      mskTag.className = "scheme-tag " + (r.msk.isUpgrade ? "upgrade" : "normal");
+      // MSK (per-camera constant)
+      const mskPerCamera = pipeline === "DC" ? MSK_PER_CAMERA_DC : MSK_PER_CAMERA_PCV;
+      document.getElementById("result-msk").textContent = fmt(mskPerCamera);
 
-      // MongoDB
-      document.getElementById("result-mongo").textContent = fmt(r.mongo.cost);
-      const mongoTag = document.getElementById("mongo-tag");
-      mongoTag.textContent = r.mongo.tier;
-      mongoTag.className = "scheme-tag " + (r.mongo.isUpgrade ? "upgrade" : "normal");
+      // MongoDB (per-camera constant)
+      const mongoPerCamera = pipeline === "DC" ? MONGO_PER_CAMERA_DC : MONGO_PER_CAMERA_PCV;
+      document.getElementById("result-mongo").textContent = fmt(mongoPerCamera);
 
-      // Total
-      document.getElementById("result-total").textContent = fmt(r.total);
+      // Total (EC2 + S3 + MSK + MongoDB)
+      const perCameraTotal = r.ec2.cost + r.s3 + mskPerCamera + mongoPerCamera;
+      document.getElementById("result-total").textContent = fmt(perCameraTotal);
 
-      // Note
+      // Note (S3 early months)
       const m = mDC + mPCV;
       const notes = [];
-      if (r.msk.isUpgrade)   notes.push("MSK 已升級至 kafka.m7g.xlarge（M=" + m + " > 945）");
-      if (r.mongo.isUpgrade) notes.push("MongoDB 已升級至 M60（M=" + m + " > 900）");
-      if (n < 4)             notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
+      if (n < 4) notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
       document.getElementById("result-note").textContent = notes.join("　·　");
 
-      // ─── Proportion bars & percentages ───────────────────────────────────
-      const vals   = [r.ec2.cost, r.s3, r.msk.cost, r.mongo.cost];
-      const barIds = ["bar-ec2", "bar-s3", "bar-msk", "bar-mongo"];
-      const pctIds = ["pct-ec2", "pct-s3", "pct-msk", "pct-mongo"];
-      const maxVal = Math.max(...vals);
-      vals.forEach((v, i) => {
-        const bar = document.getElementById(barIds[i]);
-        if (bar) bar.style.width = (maxVal > 0 ? (v / maxVal * 100) : 0) + "%";
-        const pct = document.getElementById(pctIds[i]);
-        if (pct) pct.textContent = r.total > 0 ? (v / r.total * 100).toFixed(1) + "%" : "—";
+      // ─── Section 01 proportion bars & percentages (EC2 + S3 + MSK + MongoDB) ─
+      const perCameraVals   = [r.ec2.cost, r.s3, mskPerCamera, mongoPerCamera];
+      const perCameraBarIds = ["bar-ec2", "bar-s3", "bar-msk", "bar-mongo"];
+      const perCameraPctIds = ["pct-ec2", "pct-s3", "pct-msk", "pct-mongo"];
+      const perCameraMax    = Math.max(...perCameraVals);
+      perCameraVals.forEach((v, i) => {
+        const bar = document.getElementById(perCameraBarIds[i]);
+        if (bar) bar.style.width = (perCameraMax > 0 ? (v / perCameraMax * 100) : 0) + "%";
+        const pct = document.getElementById(perCameraPctIds[i]);
+        if (pct) pct.textContent = perCameraTotal > 0 ? (v / perCameraTotal * 100).toFixed(1) + "%" : "—";
       });
+
+      // ─── Section 02: Shared Infrastructure ───────────────────────────────
+      document.getElementById("shared-mongo").textContent = fmt(r.mongo.totalMonthly);
+      const sharedMongoTag = document.getElementById("shared-mongo-tag");
+      sharedMongoTag.textContent = r.mongo.tier;
+      sharedMongoTag.className = "scheme-tag " + (r.mongo.isUpgrade ? "upgrade" : "normal");
+
+      const sharedNotes = [];
+      if (r.mongo.isUpgrade) sharedNotes.push("MongoDB 已升級至 M60（M=" + m + " > 900）");
+      document.getElementById("shared-note").textContent = sharedNotes.join("　·　");
+
+      // ─── Section 02 proportion bars ───────────────────────────────────────
+      const bar = document.getElementById("shared-bar-mongo");
+      if (bar) bar.style.width = "100%";
+      const pct = document.getElementById("shared-pct-mongo");
+      if (pct) pct.textContent = "100%";
     }
 
     // ─── Init ─────────────────────────────────────────────────────────────────
 
     linkSlider("n-slider",    "n-input",    1,  24);
-    linkSlider("mdc-slider",  "mdc-input",  1,  3000);
-    linkSlider("mpcv-slider", "mpcv-input", 1, 10000);
+    linkSlider("mdc-slider",  "mdc-input",  340,  3000);
+    linkSlider("mpcv-slider", "mpcv-input", 240, 10000);
 
     document.querySelectorAll("input[name='pipeline']").forEach(r => {
       r.addEventListener("change", render);
     });
 
     render();
+
+    // ─── MSK Capacity Planner ─────────────────────────────────────────────────
+
+    function renderMSKCapacity() {
+      const mskDC  = Math.max(0, parseInt(document.getElementById("msk-dc-input").value,  10) || 0);
+      const mskPCV = Math.max(0, parseInt(document.getElementById("msk-pcv-input").value, 10) || 0);
+      const c = calcMSKCapacity(mskDC, mskPCV);
+
+      // Tier cards
+      document.getElementById("msk-card-large").className  = "tier-card" + (!c.isUpgrade ? " active" : "");
+      document.getElementById("msk-card-xlarge").className = "tier-card" + (c.isUpgrade ? " active upgrade" : "");
+
+      // Capacity bar
+      const bar    = document.getElementById("msk-cap-bar");
+      const barDC  = document.getElementById("msk-bar-dc");
+      const barPCV = document.getElementById("msk-bar-pcv");
+
+      if (c.isOverflow) {
+        bar.classList.add("overflow");
+        const t = c.dcRate + c.pcvRate;
+        barDC.style.width  = t > 0 ? (c.dcRate  / t * 100).toFixed(1) + "%" : "0%";
+        barPCV.style.width = t > 0 ? (c.pcvRate / t * 100).toFixed(1) + "%" : "0%";
+      } else {
+        bar.classList.remove("overflow");
+        barDC.style.width  = c.pctDC.toFixed(1)  + "%";
+        barPCV.style.width = c.pctPCV.toFixed(1) + "%";
+      }
+
+      // Summary text
+      const pctStr = (c.total / c.limit * 100).toFixed(1);
+      const summaryBase = c.total.toFixed(1) + " / " + c.limit + " msg/sec  ·  " + pctStr + "%";
+      const remainStr = c.isOverflow
+        ? "  ·  已超出容量"
+        : "  ·  剩餘 DC +" + c.remainDC.toLocaleString() + " 台 或 PCV +" + c.remainPCV.toLocaleString() + " 台";
+      document.getElementById("msk-cap-summary").textContent = summaryBase + remainStr;
+
+      // Warning
+      document.getElementById("msk-cap-warning").style.display = c.isOverflow ? "" : "none";
+    }
+
+    // Slider wiring (independent from Section 01)
+    (function() {
+      function wire(sliderId, inputId, min, max) {
+        const sl = document.getElementById(sliderId);
+        const ip = document.getElementById(inputId);
+        sl.addEventListener("input", () => { ip.value = sl.value; renderMSKCapacity(); });
+        ip.addEventListener("input", () => {
+          let v = parseInt(ip.value, 10);
+          if (isNaN(v)) return;
+          v = Math.max(min, Math.min(max, v));
+          ip.value = v; sl.value = v;
+          renderMSKCapacity();
+        });
+      }
+      wire("msk-dc-slider",  "msk-dc-input",  340, 3000);
+      wire("msk-pcv-slider", "msk-pcv-input", 240, 10000);
+      renderMSKCapacity();
+    })();
+
+    function renderMongoCapacity() {
+      const mongoDC  = Math.max(0, parseInt(document.getElementById("mongo-dc-input").value,  10) || 0);
+      const mongoPCV = Math.max(0, parseInt(document.getElementById("mongo-pcv-input").value, 10) || 0);
+      const c = calcMongoCapacity(mongoDC, mongoPCV);
+
+      // Tier cards
+      document.getElementById("mongo-card-m50").className =
+        "tier-card" + (!c.isUpgrade ? " active" : "");
+      document.getElementById("mongo-card-m60").className =
+        "tier-card" + (c.isOverflow ? " active overload" : c.isUpgrade ? " active upgrade" : "");
+
+      // Capacity bar
+      const bar    = document.getElementById("mongo-cap-bar");
+      const barDC  = document.getElementById("mongo-bar-dc");
+      const barPCV = document.getElementById("mongo-bar-pcv");
+
+      if (c.isOverflow) {
+        bar.classList.add("overflow");
+        const t = c.dcEq + c.pcvEq;
+        barDC.style.width  = t > 0 ? (c.dcEq  / t * 100).toFixed(1) + "%" : "0%";
+        barPCV.style.width = t > 0 ? (c.pcvEq / t * 100).toFixed(1) + "%" : "0%";
+      } else {
+        bar.classList.remove("overflow");
+        barDC.style.width  = c.pctDC.toFixed(1)  + "%";
+        barPCV.style.width = c.pctPCV.toFixed(1) + "%";
+      }
+
+      // Summary line 1: W / limit · Z% used · 剩餘 R eq
+      const pctUsed = (c.W / c.limit * 100).toFixed(1);
+      const summaryText = c.W.toLocaleString() + " / " + c.limit.toLocaleString() +
+        " eq  ·  " + pctUsed + "% used" +
+        (c.isOverflow ? "" : "  ·  剩餘 " + c.remain.toLocaleString() + " eq");
+      document.getElementById("mongo-cap-summary").textContent = summaryText;
+
+      // Detail line: breakdown + 可再加
+      const detailLine1 = "DC " + mongoDC + "台（×6 = " + c.dcEq.toLocaleString() + " eq）+ PCV " +
+        mongoPCV + "台（×1 = " + c.pcvEq.toLocaleString() + " eq）";
+      const detailLine2 = c.isOverflow
+        ? ""
+        : "可再加 " + c.remainDC.toLocaleString() + " 台 DC，或 " + c.remainPCV.toLocaleString() + " 台 PCV";
+      document.getElementById("mongo-cap-detail").innerHTML =
+        detailLine1 + (detailLine2 ? "<br>" + detailLine2 : "");
+
+      // Warning
+      document.getElementById("mongo-cap-warning").style.display = c.isOverflow ? "" : "none";
+    }
+
+    // MongoDB slider wiring (independent from Section 01)
+    (function() {
+      function wire(sliderId, inputId, min, max) {
+        const sl = document.getElementById(sliderId);
+        const ip = document.getElementById(inputId);
+        sl.addEventListener("input", () => { ip.value = sl.value; renderMongoCapacity(); });
+        ip.addEventListener("input", () => {
+          let v = parseInt(ip.value, 10);
+          if (isNaN(v)) return;
+          v = Math.max(min, Math.min(max, v));
+          ip.value = v; sl.value = v;
+          renderMongoCapacity();
+        });
+      }
+      wire("mongo-dc-slider",  "mongo-dc-input",  340, 3000);
+      wire("mongo-pcv-slider", "mongo-pcv-input", 240, 10000);
+      renderMongoCapacity();
+    })();
+
+    // ─── Fleet Total Cost ─────────────────────────────────────────────────────
+
+    // 3.1 Batch data
+    let batches = [{ n: 12, mDC: 340, mPCV: 240 }];
+
+    // 4.1
+    function calcFleetEC2(bs) {
+      return bs.reduce((sum, b) => {
+        if (b.mDC  > 0) sum += calcEC2_DC(b.mDC).cost   * b.mDC;
+        if (b.mPCV > 0) sum += calcEC2_PCV(b.mPCV).cost * b.mPCV;
+        return sum;
+      }, 0);
+    }
+
+    // 4.2
+    function calcFleetS3(bs) {
+      return bs.reduce((sum, b) =>
+        sum + calcS3IT_DC(b.n) * b.mDC + calcS3IT_PCV(b.n) * b.mPCV, 0);
+    }
+
+    // 4.3
+    function calcFleetMSK(fleetRate) {
+      const isUpgrade = fleetRate > MSK_LARGE_THROUGHPUT;
+      return {
+        cost:      isUpgrade ? MSK_XLARGE_MONTHLY : MSK_LARGE_MONTHLY,
+        scheme:    isUpgrade ? "kafka.m7g.xlarge" : "kafka.m7g.large",
+        isUpgrade
+      };
+    }
+
+    // 4.4
+    function calcFleetMongo(fleetDC, fleetPCV) {
+      const W = fleetDC * MONGO_DC_WEIGHT + fleetPCV;
+      const isUpgrade = W > MONGO_M50_EQ_LIMIT;
+      return {
+        cost:      isUpgrade ? MONGO_M60_MONTHLY : MONGO_M50_MONTHLY,
+        tier:      isUpgrade ? "M60" : "M50",
+        isUpgrade, W
+      };
+    }
+
+    // 4.5
+    function renderFleet() {
+      const fleetM    = batches.reduce((s, b) => s + b.mDC + b.mPCV, 0);
+      const fleetDC   = batches.reduce((s, b) => s + b.mDC, 0);
+      const fleetPCV  = batches.reduce((s, b) => s + b.mPCV, 0);
+      const fleetRate = batches.reduce((s, b) => s + b.mDC * DC_RATE + b.mPCV * PCV_RATE, 0);
+
+      const ec2   = calcFleetEC2(batches);
+      const s3    = calcFleetS3(batches);
+      const msk   = calcFleetMSK(fleetRate);
+      const mongo = calcFleetMongo(fleetDC, fleetPCV);
+      const total = ec2 + s3 + msk.cost + mongo.cost + EKS_TOTAL;
+
+      document.getElementById("fleet-ec2").textContent   = fmt(ec2);
+      document.getElementById("fleet-s3").textContent    = fmt(s3);
+      document.getElementById("fleet-msk").textContent   = fmt(msk.cost);
+      document.getElementById("fleet-mongo").textContent = fmt(mongo.cost);
+      document.getElementById("fleet-eks").textContent   = fmt(EKS_TOTAL);
+      document.getElementById("fleet-total").textContent = fmt(total);
+
+      document.getElementById("fleet-ec2-detail").textContent =
+        batches.length + " batch" + (batches.length > 1 ? "es" : "") + "  ·  fleet M = " + fleetM;
+
+      const mskTag = document.getElementById("fleet-msk-tag");
+      mskTag.textContent  = msk.scheme;
+      mskTag.className    = "scheme-tag " + (msk.isUpgrade ? "upgrade" : "normal");
+
+      const mongoTag = document.getElementById("fleet-mongo-tag");
+      mongoTag.textContent = mongo.tier;
+      mongoTag.className   = "scheme-tag " + (mongo.isUpgrade ? "upgrade" : "normal");
+
+      // Proportion bars & percentages
+      const vals   = [ec2, s3, msk.cost, mongo.cost, EKS_TOTAL];
+      const barIds = ["fleet-bar-ec2", "fleet-bar-s3", "fleet-bar-msk", "fleet-bar-mongo", "fleet-bar-eks"];
+      const pctIds = ["fleet-pct-ec2", "fleet-pct-s3", "fleet-pct-msk", "fleet-pct-mongo", "fleet-pct-eks"];
+      const maxVal = Math.max(...vals);
+      vals.forEach((v, i) => {
+        const bar = document.getElementById(barIds[i]);
+        if (bar) bar.style.width = (maxVal > 0 ? (v / maxVal * 100) : 0) + "%";
+        const pct = document.getElementById(pctIds[i]);
+        if (pct) pct.textContent = total > 0 ? (v / total * 100).toFixed(1) + "%" : "—";
+      });
+
+      // Notes
+      const notes = [];
+      if (msk.isUpgrade)   notes.push("MSK 已升級至 kafka.m7g.xlarge（fleet " + fleetRate.toFixed(1) + " msg/sec > 31）");
+      if (mongo.isUpgrade) notes.push("MongoDB 已升級至 M60（fleet W=" + mongo.W + " > 2700）");
+      document.getElementById("fleet-note").textContent = notes.join("　·　");
+
+      // Per-batch EC2+S3 subtotals
+      batches.forEach((b, i) => {
+        const el = document.getElementById("batch-subtotal-" + i);
+        if (!el) return;
+        const bEC2 = (b.mDC  > 0 ? calcEC2_DC(b.mDC).cost   * b.mDC  : 0)
+                   + (b.mPCV > 0 ? calcEC2_PCV(b.mPCV).cost * b.mPCV : 0);
+        const bS3  = calcS3IT_DC(b.n) * b.mDC + calcS3IT_PCV(b.n) * b.mPCV;
+        el.textContent = fmt(bEC2 + bS3);
+      });
+    }
+
+    // 3.2 Render batch list
+    function renderBatchList() {
+      const list = document.getElementById("batch-list");
+      list.innerHTML = "";
+
+      batches.forEach((b, i) => {
+        const row = document.createElement("div");
+        row.className = "batch-row";
+        row.innerHTML =
+          '<span class="batch-num">#' + (i + 1) + '</span>' +
+          '<span class="batch-field">' +
+            '<span class="batch-field-label">N</span>' +
+            '<input type="number" class="batch-input" data-batch="' + i + '" data-field="n" min="1" max="24" value="' + b.n + '">' +
+          '</span>' +
+          '<span class="batch-field">' +
+            '<span class="batch-field-label">M<sub style="font-size:0.7em">DC</sub></span>' +
+            '<input type="number" class="batch-input" data-batch="' + i + '" data-field="mDC" min="0" max="3000" value="' + b.mDC + '">' +
+          '</span>' +
+          '<span class="batch-field">' +
+            '<span class="batch-field-label">M<sub style="font-size:0.7em">PCV</sub></span>' +
+            '<input type="number" class="batch-input" data-batch="' + i + '" data-field="mPCV" min="0" max="10000" value="' + b.mPCV + '">' +
+          '</span>' +
+          '<span class="batch-subtotal"><span class="batch-subtotal-label">EC2+S3</span><span id="batch-subtotal-' + i + '">—</span></span>' +
+          '<button class="batch-delete" data-batch="' + i + '"' + (batches.length === 1 ? ' disabled' : '') + '>✕</button>';
+        list.appendChild(row);
+      });
+
+      // 3.5 Input events
+      list.querySelectorAll(".batch-input").forEach(function(input) {
+        input.addEventListener("input", function() {
+          const idx   = parseInt(this.dataset.batch, 10);
+          const field = this.dataset.field;
+          let v = parseInt(this.value, 10);
+          if (isNaN(v)) return;
+          v = Math.max(parseInt(this.min, 10), Math.min(parseInt(this.max, 10), v));
+          batches[idx][field] = v;
+          renderFleet();
+        });
+      });
+
+      // 3.4 Delete events
+      list.querySelectorAll(".batch-delete").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          batches.splice(parseInt(this.dataset.batch, 10), 1);
+          renderBatchList();
+        });
+      });
+
+      renderFleet();
+    }
+
+    // 3.3 Add batch button
+    document.getElementById("add-batch-btn").addEventListener("click", function() {
+      batches.push({ n: 1, mDC: 0, mPCV: 0 });
+      renderBatchList();
+    });
+
+    // 5.1 Init fleet
+    renderBatchList();
   </script>
 </body>
 </html>
