@@ -687,6 +687,43 @@
       letter-spacing: 0.04em;
       margin-top: 4px;
     }
+
+    /* ── Storage Mode Tabs ── */
+    .storage-tabs {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .storage-tab {
+      flex: 1;
+      padding: 10px 16px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .storage-tab:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+    .storage-tab.active {
+      background: var(--teal);
+      color: #fff;
+    }
+    .storage-tab:not(.active):hover {
+      background: var(--teal-dim);
+      color: var(--teal);
+    }
   </style>
 </head>
 <body>
@@ -695,6 +732,11 @@
     <span class="title">Cost Estimator</span>
     <span class="subtitle">單台相機月費試算<span class="dot">·</span>DC &amp; PCV Pipeline</span>
   </header>
+
+  <div class="storage-tabs">
+    <button class="storage-tab active" data-mode="s3it">S3 Intelligent-Tiering</button>
+    <button class="storage-tab" data-mode="s3std">S3 Standard (Cropped)</button>
+  </div>
 
   <div class="section-label">
     <span class="section-label-text"><em>01</em>單台相機月費 &nbsp;·&nbsp; Per-Camera Cost</span>
@@ -791,7 +833,7 @@
 
         <div class="cost-row">
           <div class="cost-left">
-            <div class="cost-name">S3 Intelligent-Tiering</div>
+            <div class="cost-name" id="s3-label">S3 Intelligent-Tiering</div>
             <div class="cost-bar-wrap"><div class="cost-bar" id="bar-s3" style="width:0%"></div></div>
           </div>
           <div class="cost-right">
@@ -1029,7 +1071,7 @@
 
           <div class="cost-row">
             <div class="cost-left">
-              <div class="cost-name">S3 IT 合計</div>
+              <div class="cost-name" id="fleet-s3-label">S3 IT 合計</div>
               <div class="cost-bar-wrap"><div class="cost-bar" id="fleet-bar-s3" style="width:0%"></div></div>
             </div>
             <div class="cost-right">
@@ -1105,6 +1147,9 @@
   </div>
 
   <script>
+    // ─── Storage Mode ────────────────────────────────────────────────────────
+    let storageMode = "s3it"; // "s3it" or "s3std"
+
     // ─── Constants ───────────────────────────────────────────────────────────
 
     const G6_MONTHLY   = 0.805 * 720;   // $580 / node / month
@@ -1211,6 +1256,23 @@
       return 2.35 + 0.43 * n;
     }
 
+    // S3 Standard (Cropped) — independent pricing model
+    // Original: DC 392.34 GB/cam/mo, PCV 65.39 GB/cam/mo
+    // Cropped ×0.15: DC 58.851 GB/cam/mo, PCV 9.8085 GB/cam/mo
+    // S3 Standard: $0.023/GB (first 50 TB, sufficient for per-camera calc)
+    // No tier transitions — all data stays in Standard, accumulates linearly with N
+    const S3_STD_DC_PER_MONTH  = 392.34 * 0.15 * 0.023;  // $1.3536/cam/mo of data
+    const S3_STD_PCV_PER_MONTH = 65.39  * 0.15 * 0.023;  // $0.2256/cam/mo of data
+
+    function calcS3Std_DC(n)  { return S3_STD_DC_PER_MONTH  * n; }
+    function calcS3Std_PCV(n) { return S3_STD_PCV_PER_MONTH * n; }
+
+    function calcS3_DC(n)  { return storageMode === "s3std" ? calcS3Std_DC(n)  : calcS3IT_DC(n);  }
+    function calcS3_PCV(n) { return storageMode === "s3std" ? calcS3Std_PCV(n) : calcS3IT_PCV(n); }
+
+    function s3Label()      { return storageMode === "s3std" ? "S3 Standard (Cropped)" : "S3 Intelligent-Tiering"; }
+    function s3LabelShort() { return storageMode === "s3std" ? "S3 Std 合計" : "S3 IT 合計"; }
+
     function calcMSK(mDC, mPCV, pipeline) {
       const totalRate = mDC * DC_RATE + mPCV * PCV_RATE;
       const isUpgrade = totalRate > MSK_LARGE_THROUGHPUT;
@@ -1268,7 +1330,7 @@
 
     function calcTotal(n, mDC, mPCV, pipeline) {
       const ec2    = pipeline === "DC" ? calcEC2_DC(mDC) : calcEC2_PCV(mPCV);
-      const s3     = pipeline === "DC" ? calcS3IT_DC(n)  : calcS3IT_PCV(n);
+      const s3     = pipeline === "DC" ? calcS3_DC(n)  : calcS3_PCV(n);
       const msk    = calcMSK(mDC, mPCV, pipeline);
       const mongo  = calcMongoDB(mDC, mPCV);
       const total  = ec2.cost + s3 + msk.cost + mongo.cost;
@@ -1324,6 +1386,7 @@
 
       // S3
       document.getElementById("result-s3").textContent = fmt(r.s3);
+      document.getElementById("s3-label").textContent = s3Label();
 
       // MSK (per-camera constant)
       const mskPerCamera = pipeline === "DC" ? MSK_PER_CAMERA_DC : MSK_PER_CAMERA_PCV;
@@ -1340,7 +1403,7 @@
       // Note (S3 early months)
       const m = mDC + mPCV;
       const notes = [];
-      if (n < 4) notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
+      if (n < 4 && storageMode === "s3it") notes.push("N=" + n + " 月（S3 IT 使用前 3 個月特殊值）");
       document.getElementById("result-note").textContent = notes.join("　·　");
 
       // ─── Section 01 proportion bars & percentages (EC2 + S3 + MSK + MongoDB) ─
@@ -1365,6 +1428,17 @@
 
     document.querySelectorAll("input[name='pipeline']").forEach(r => {
       r.addEventListener("change", render);
+    });
+
+    // Storage mode tabs
+    document.querySelectorAll(".storage-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        storageMode = tab.dataset.mode;
+        document.querySelectorAll(".storage-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        render();
+        renderBatchList();
+      });
     });
 
     render();
@@ -1534,7 +1608,7 @@
     // 4.2
     function calcFleetS3(bs) {
       return bs.reduce((sum, b) =>
-        sum + calcS3IT_DC(b.n) * b.mDC + calcS3IT_PCV(b.n) * b.mPCV, 0);
+        sum + calcS3_DC(b.n) * b.mDC + calcS3_PCV(b.n) * b.mPCV, 0);
     }
 
     // 4.3
@@ -1573,6 +1647,7 @@
 
       document.getElementById("fleet-ec2").textContent   = fmt(ec2);
       document.getElementById("fleet-s3").textContent    = fmt(s3);
+      document.getElementById("fleet-s3-label").textContent = s3LabelShort();
       document.getElementById("fleet-msk").textContent   = fmt(msk.cost);
       document.getElementById("fleet-mongo").textContent = fmt(mongo.cost);
       document.getElementById("fleet-eks").textContent   = fmt(EKS_TOTAL);
@@ -1613,7 +1688,7 @@
         if (!el) return;
         const bEC2 = (b.mDC  > 0 ? calcEC2_DC(b.mDC).cost   * b.mDC  : 0)
                    + (b.mPCV > 0 ? calcEC2_PCV(b.mPCV).cost * b.mPCV : 0);
-        const bS3  = calcS3IT_DC(b.n) * b.mDC + calcS3IT_PCV(b.n) * b.mPCV;
+        const bS3  = calcS3_DC(b.n) * b.mDC + calcS3_PCV(b.n) * b.mPCV;
         el.textContent = fmt(bEC2 + bS3);
       });
     }
