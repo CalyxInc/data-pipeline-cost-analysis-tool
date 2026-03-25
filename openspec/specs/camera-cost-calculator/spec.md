@@ -56,7 +56,7 @@ A single-file (`index.html`) browser-based tool for calculating per-camera month
 
 #### Scenario: DC pipeline 成本計算（N < 4）
 - **WHEN** Pipeline Type = DC，N = 1
-- **THEN** S3 = calcS3_DC(N)（依儲存方案，IT 時 $10.02，Standard 時 $1.503）；N=2 時 IT $15.93 / Std $2.3895；N=3 時 IT $21.84 / Std $3.276；MSK_DC = $2.00（所有 N 值固定）；MongoDB_DC = $11.28（所有 N 值固定）
+- **THEN** S3 = calcS3_DC(N)（依儲存方案，IT 時 $6.69，Standard 時 $1.0035）；N=2 時 IT $10.63 / Std $1.5945；N=3 時 IT $14.57 / Std $2.1855；MSK_DC = $2.00（所有 N 值固定）；MongoDB_DC = $11.28（所有 N 值固定）
 
 #### Scenario: PCV pipeline 成本計算（N ≥ 4）
 - **WHEN** Pipeline Type = PCV，N ≥ 4
@@ -64,19 +64,19 @@ A single-file (`index.html`) browser-based tool for calculating per-camera month
 
 #### Scenario: 數值驗證（DC 基準，S3 IT 模式）
 - **WHEN** N=12, M_DC=340, M_PCV=240, Pipeline Type=DC，儲存方案 = S3 IT
-- **THEN** EC2=$8.20, S3=$45.00, MSK=$2.00, MongoDB=$11.28, per-camera 合計=$66.48
+- **THEN** EC2=$8.20, S3=$30.05, MSK=$2.00, MongoDB=$11.28, per-camera 合計=$51.53
 
 #### Scenario: 數值驗證（DC 基準，S3 Standard 模式）
 - **WHEN** N=12, M_DC=340, M_PCV=240, Pipeline Type=DC，儲存方案 = S3 Standard
-- **THEN** EC2=$8.20, S3=$6.744, MSK=$2.00, MongoDB=$11.28, per-camera 合計=$28.22
+- **THEN** EC2=$8.20, S3=$4.5075, MSK=$2.00, MongoDB=$11.28, per-camera 合計=$25.99
 
 #### Scenario: 數值驗證（PCV 基準，S3 IT 模式）
 - **WHEN** N=12, M_DC=340, M_PCV=240, Pipeline Type=PCV，儲存方案 = S3 IT
-- **THEN** EC2=$4.38, S3=$7.48, MSK=$0.33, MongoDB=$1.88, per-camera 合計=$14.07
+- **THEN** EC2=$4.38, S3=$2.57, MSK=$0.33, MongoDB=$1.88, per-camera 合計=$9.16
 
 #### Scenario: 數值驗證（PCV 基準，S3 Standard 模式）
 - **WHEN** N=12, M_DC=340, M_PCV=240, Pipeline Type=PCV，儲存方案 = S3 Standard
-- **THEN** EC2=$4.38, S3=$1.1265, MSK=$0.33, MongoDB=$1.88, per-camera 合計=$7.72
+- **THEN** EC2=$4.38, S3=$0.3855, MSK=$0.33, MongoDB=$1.88, per-camera 合計=$6.98
 
 #### Scenario: 切換儲存方案時即時更新
 - **WHEN** 使用者切換全域儲存方案 tab

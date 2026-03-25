@@ -1243,26 +1243,26 @@
     }
 
     function calcS3IT_DC(n) {
-      if (n === 1) return 10.02;
-      if (n === 2) return 15.93;
-      if (n === 3) return 21.84;
-      return 14.12 + 2.57 * n;
+      if (n === 1) return 6.69;
+      if (n === 2) return 10.63;
+      if (n === 3) return 14.57;
+      return 9.41 + 1.72 * n;
     }
 
     function calcS3IT_PCV(n) {
-      if (n === 1) return 1.67;
-      if (n === 2) return 2.66;
-      if (n === 3) return 3.65;
-      return 2.35 + 0.43 * n;
+      if (n === 1) return 0.56;
+      if (n === 2) return 0.89;
+      if (n === 3) return 1.22;
+      return 0.77 + 0.15 * n;
     }
 
     // S3 Standard (Cropped) — independent pricing model
-    // Original: DC 392.34 GB/cam/mo, PCV 65.39 GB/cam/mo
-    // Cropped ×0.15: DC 58.851 GB/cam/mo, PCV 9.8085 GB/cam/mo
+    // Original: DC 261.56 GB/cam/mo (2 photos/msg), PCV 21.80 GB/cam/mo (1 photo/msg)
+    // Cropped ×0.15: DC 39.234 GB/cam/mo, PCV 3.270 GB/cam/mo
     // S3 Standard: $0.023/GB (first 50 TB, sufficient for per-camera calc)
     // No tier transitions — all data stays in Standard, accumulates linearly with N
-    const S3_STD_DC_PER_MONTH  = 392.34 * 0.15 * 0.023;  // $1.3536/cam/mo of data
-    const S3_STD_PCV_PER_MONTH = 65.39  * 0.15 * 0.023;  // $0.2256/cam/mo of data
+    const S3_STD_DC_PER_MONTH  = 261.56 * 0.15 * 0.023;  // $0.9024/cam/mo of data
+    const S3_STD_PCV_PER_MONTH = 21.80  * 0.15 * 0.023;  // $0.0752/cam/mo of data
 
     function calcS3Std_DC(n)  { return S3_STD_DC_PER_MONTH  * n; }
     function calcS3Std_PCV(n) { return S3_STD_PCV_PER_MONTH * n; }
