@@ -20,7 +20,7 @@ No package manager, test framework, or transpiler.
 
 ## Architecture
 
-The entire application lives in `index.html` (~1,650 lines): HTML structure, CSS (custom properties design system), and vanilla JS.
+The entire application lives in `index.html` (~1,750 lines): HTML structure, CSS (custom properties design system), and vanilla JS.
 
 ### Three Independent Sections
 
@@ -33,9 +33,14 @@ The entire application lives in `index.html` (~1,650 lines): HTML structure, CSS
 ### Key Business Logic
 
 - **MSK tiers**: message rate = M_DC × 0.05 + M_PCV × (1/120); ≤31 msg/s → large ($1,238.88), >31 → xlarge ($1,997.76)
-- **MongoDB tiers**: equivalent units W = M_DC × 6 + M_PCV; ≤2,700 → M50 ($6,019), >2,700 → M60 ($10,600)
+- **MongoDB tiers**: equivalent units W = M_DC × 6 + M_PCV; ≤2,700 → M50, >2,700 → M60. Monthly cost is dynamic via `calcMongoMonthly()` based on storage input (default 2,215 GB)
 - **EC2**: ceil-based node counting (DC: 91/g6, 828/m7g; PCV: 545/g6, 600/m7g)
-- **S3 IT**: lookup table for N<4, linear formula for N≥4
+- **S3 IT**: lookup table for N<4, linear formula for N≥4 (DC: $9.41+$1.72×N, PCV: $0.77+$0.15×N)
+- **S3 Storage Mode**: global toggle (`storageMode`) switches between S3 Intelligent-Tiering and S3 Standard (Cropped = IT × 0.15), affects all sections
+
+### Source of Truth
+
+All cost constants originate from `benson-aws-account-oregon-ml-infra/implementation-plan/0003-pipeline-cost-analysis.md` (separate repo). When that document updates, open an OpenSpec change to sync constants into `index.html`.
 
 ### CSS Design System
 
