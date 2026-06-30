@@ -8,7 +8,7 @@
 
 建立一支**新的**靜態 HTML 成本試算工具，把 0014「+500 house scale-up forecast」的成本模型做成可互動版本。`index.html` 維持不動。
 
-`index.html` 算的是 *per-camera-per-month*（N 個月、相機數、S3 隨月累積）。0014 是 *fleet-scale 預測*，由**裝置數**（DC / PCV / **loadcell**）驅動，新增兩個成本項（**AWS IoT Core**、loadcell 驅動的 **MongoDB / MSK** 模型），以 **house**（1 house = 1 DC + 1 PCV + 1 loadcell）為單位，且有階梯跳階（MongoDB 4TB→M60 / 8TB、MSK broker 升級、GPU `max_replicas`）與 **Version A vs Version B** 的 MongoDB 分支。
+`index.html` 算的是 *per-camera-per-month*（N 個月、相機數、S3 隨月累積）。0014 是 *fleet-scale 預測*，由**裝置數**（DC / PCV / **loadcell**）驅動，新增兩個成本項（**AWS IoT Core**、loadcell 驅動的 **MongoDB / MSK** 模型），以 **house**（1 house = 1 DC + 1 PCV + 1 loadcell）為單位，且有階梯跳階（MongoDB 4/8 TB、MSK broker 升級、GPU `max_replicas`）。0014 原文有 MongoDB Version A/B 分支，但 CC-770 後改為單一模型（見 §3 Revision）。
 
 「仿照 index.html」= 沿用**外觀與版面**（design system、panel/slider/hero），底層**模型重建**為 0014。
 
@@ -72,7 +72,7 @@ msg/s = 937(其他感測器，固定) + loadcell×1 + DC×0.05 + PCV×0.00833
 - 現況 msg/s ≈ 1,365（≤1,630）→ **$1,281** ✓（文件實測 1,323，差在 loadcell 裝置數 406 vs 上傳率實測 ~364；階梯對結果無影響）。
 - +500 → msg/s ≈ 1,894（>1,630，≤2,450）→ 6× m7g.large **~$1,900**（文件 §4 列 ~$2,000，兩者皆標示為可行解）。
 
-### 4.4 MongoDB（fsUsed 階梯，A/B 分支）
+### 4.4 MongoDB（fsUsed 階梯，單一模型 — CC-770 後）
 ```
 fsUsed(GB) = 0.71 × (2,135 + 5.7 × loadcell)
 ```

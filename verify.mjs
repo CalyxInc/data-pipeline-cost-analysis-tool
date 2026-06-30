@@ -53,7 +53,7 @@ const approx = (a, b, tol, msg) => assert(Math.abs(a - b) <= tol, `${msg}: got $
 // m7g = 0.653×720 = $470.16) with the single Version-B MongoDB model, so the
 // aggregate lands at ~$43,579 — close to but not equal to the doc's rounded ~$43,700.
 {
-  approx(api.calcAll(500).total, 43579, 20, '+500 total ~43.6k (Version B model)');
+  approx(api.calcAll(500).total, 43579, 20, '+500 total ~43.6k (single M50+Ext model)');
 }
 
 console.log('All forecast calc assertions passed ✓');
