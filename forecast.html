@@ -758,10 +758,11 @@
     <span class="subtitle">擴增 house 成本試算<span class="dot">·</span>0014 model<span class="dot">·</span>DC + PCV + loadcell</span>
   </header>
 
-  <!-- MongoDB Version toggle -->
-  <div class="storage-tabs">
-    <button class="storage-tab version-tab active" data-version="A">Version A · M50 ≤ 4 TB（現況）</button>
-    <button class="storage-tab version-tab" data-version="B">Version B · M50 → 8 TB（CC-770）</button>
+  <!-- MongoDB cost model note -->
+  <div style="max-width:1000px;margin:0 auto 24px;font-size:0.66rem;color:var(--muted);letter-spacing:0.03em;line-height:1.7;padding:11px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+    <strong style="color:var(--text)">MongoDB 模型</strong>：M50 + Extended Storage —
+    依 <strong style="color:var(--teal)">CC-770</strong> 已確認 M50 可擴充至 8 TB（base 4 TB → Extended 8 TB）；
+    fsUsed 超過 8 TB 才需 M80 / sharding。
   </div>
 
   <div class="section-label">
@@ -884,7 +885,9 @@ const MONGO_LOGICAL_RATIO = 0.71;  // logical→disk (compression + index)
 const MONGO_NONLC_GB = 2135;       // non-loadcell data (camera collections, no archive)
 const MONGO_PER_LC_GB = 5.7;       // logical GB per loadcell (183-day window)
 const TB = 1000;                   // GB per TB (decimal, matches doc fsUsed convention)
-const MONGO_COST = { m50: 6900, m60_ext: 11000, m50_ext: 9400, beyond: 18000 };
+// CC-770 confirmed M50 supports Extended Storage to 8 TB, so there is a single
+// model: M50 base (≤4 TB) → M50 + Extended (4–8 TB) → M80 / sharding (>8 TB).
+const MONGO_COST = { m50: 6900, m50_ext: 9400, beyond: 18000 };
 
 // ── AWS IoT Core ──
 const IOT_PER_LC = 4.96;
@@ -910,33 +913,32 @@ function calcS3(d) {
 function calcMSK(d) {
   const rate = MSK_OTHER + d.lc * LC_RATE + d.dc * DC_RATE + d.pcv * PCV_RATE;
   let tier = MSK_TIERS.find(t => rate <= t.limit);
+  // Beyond the largest documented cluster, cost is capped at the top tier and
+  // overflow=true — a "needs re-evaluation" signal, not a precise estimate.
   const overflow = !tier;
   if (!tier) tier = MSK_TIERS[MSK_TIERS.length - 1];
   return { cost: tier.cost, rate, tierName: tier.name, limit: tier.limit, overflow };
 }
 
-function calcMongo(d, version) {
+function calcMongo(d) {
   const fsUsed = MONGO_LOGICAL_RATIO * (MONGO_NONLC_GB + MONGO_PER_LC_GB * d.lc);
   let cost, tierName, overflow = false;
   if (fsUsed <= 4 * TB) { cost = MONGO_COST.m50; tierName = 'M50'; }
-  else if (fsUsed <= 8 * TB) {
-    if (version === 'B') { cost = MONGO_COST.m50_ext; tierName = 'M50 + Extended'; }
-    else { cost = MONGO_COST.m60_ext; tierName = 'M60 + Extended'; }
-  } else { cost = MONGO_COST.beyond; tierName = 'M80 / sharding'; overflow = true; }
+  else if (fsUsed <= 8 * TB) { cost = MONGO_COST.m50_ext; tierName = 'M50 + Extended'; }
+  else { cost = MONGO_COST.beyond; tierName = 'M80 / sharding'; overflow = true; }
   return { cost, fsUsed, tierName, overflow };
 }
 
 function calcIoT(d) { return { cost: d.lc * IOT_PER_LC }; }
 
-function calcAll(houses, version) {
+function calcAll(houses) {
   const d = devices(houses);
   const ec2 = calcEC2(d), s3 = calcS3(d), msk = calcMSK(d);
-  const mongo = calcMongo(d, version), iot = calcIoT(d);
+  const mongo = calcMongo(d), iot = calcIoT(d);
   return { d, ec2, s3, msk, mongo, iot, total: ec2.cost + s3.cost + msk.cost + mongo.cost + iot.cost };
 }
 /* CALC-END */
 
-const state = { version: 'A' };
 const fmt0 = v => '$' + Math.round(v).toLocaleString('en-US');
 const num = v => Math.round(v).toLocaleString('en-US');
 
@@ -949,7 +951,7 @@ function setRow(key, cost, total, detail) {
 
 function render() {
   const houses = parseInt(document.getElementById('houses-input').value, 10) || 0;
-  const r = calcAll(houses, state.version);
+  const r = calcAll(houses);
 
   // device readout
   document.getElementById('dev-dc').textContent = num(r.d.dc);
@@ -966,22 +968,22 @@ function render() {
   // rows
   setRow('ec2', r.ec2.cost, r.total, `g6 ${r.ec2.g6.toFixed(1)} 台 · m7g ${r.ec2.m7g} 台`);
   setRow('s3', r.s3.cost, r.total, `新增資料 ${num(r.s3.data)} GB/月`);
-  setRow('msk', r.msk.cost, r.total, `${r.msk.rate.toFixed(0)} msg/s · ${r.msk.tierName}`);
+  setRow('msk', r.msk.cost, r.total, `${r.msk.rate.toFixed(0)} msg/s · ${r.msk.tierName}` + (r.msk.overflow ? ' · ≥ 上限，需重新評估' : ''));
   setRow('mongo', r.mongo.cost, r.total, `fsUsed ${(r.mongo.fsUsed / 1000).toFixed(2)} TB · ${r.mongo.tierName}`);
   setRow('iot', r.iot.cost, r.total, `${num(r.d.lc)} loadcell × $4.96`);
 
   // tags
   const mskTag = document.getElementById('msk-tag');
   mskTag.textContent = r.msk.tierName;
-  mskTag.className = 'scheme-tag ' + (r.msk.cost > 1281 ? 'upgrade' : 'normal');
+  mskTag.className = 'scheme-tag ' + (r.msk.cost > MSK_TIERS[0].cost ? 'upgrade' : 'normal');
   const mongoTag = document.getElementById('mongo-tag');
   mongoTag.textContent = r.mongo.tierName;
   mongoTag.className = 'scheme-tag ' + (r.mongo.tierName === 'M50' ? 'normal' : 'upgrade');
 
-  // note
+  // note — measured-baseline figures sourced from constants (single source of truth)
   document.getElementById('fc-note').textContent =
     houses === 0
-      ? '現況：公式 right-size 後 EC2 ~$4,664（實測 ~$5,100，DC m7g over-provisioned）；總計 ~$22,760 vs 實測 $23,200。'
+      ? `現況：公式 right-size 後 EC2 ~${fmt0(r.ec2.cost)}（實測 ~${fmt0(EC2_MEASURED)}，DC m7g over-provisioned）；總計 ~${fmt0(r.total)} vs 實測 ${fmt0(BASELINE_MEASURED_TOTAL)}。`
       : '';
 
   renderGates(r);  // defined in Task 4
@@ -999,16 +1001,6 @@ function linkSlider(sliderId, inputId, min, max) {
   });
 }
 
-// version A/B toggle
-document.querySelectorAll('.version-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.version-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.version = btn.dataset.version;
-    render();
-  });
-});
-
 linkSlider('houses-slider', 'houses-input', 0, 1600);
 
 function gate(title, status, statusClass, pct, detail) {
@@ -1024,24 +1016,24 @@ function gate(title, status, statusClass, pct, detail) {
 function renderGates(r) {
   const out = [];
 
-  // MongoDB: fsUsed vs 4TB / 8TB
+  // MongoDB: fsUsed vs M50 base 4 TB → Extended 8 TB wall (CC-770)
   {
     const tb = r.mongo.fsUsed / 1000;
-    const wall = state.version === 'A' ? 4 : 8;
+    const wall = 8;
     let cls, status;
     if (r.mongo.overflow) { cls = 'over'; status = '超過 8 TB → M80 / sharding'; }
-    else if (tb > 4) { cls = 'warn'; status = state.version === 'A' ? '4–8 TB → 升 M60 + Extended' : '4–8 TB → M50 + Extended'; }
-    else { cls = 'ok'; status = '在 ' + wall + ' TB 內 · M50'; }
+    else if (tb > 4) { cls = 'warn'; status = '4–8 TB → M50 + Extended'; }
+    else { cls = 'ok'; status = '在 4 TB base 內 · M50'; }
     out.push(gate('MongoDB fsUsed', status, cls, tb / wall * 100,
-      `fsUsed ${tb.toFixed(2)} TB / 牆 ${wall} TB（Version ${state.version}）`));
+      `fsUsed ${tb.toFixed(2)} TB / 牆 ${wall} TB（M50 Extended）`));
   }
 
   // MSK: msg/s vs broker capacity
   {
     const top = 3260;
     let cls, status;
-    if (r.msk.overflow) { cls = 'over'; status = '超過 4× xlarge 容量（3,260 msg/s）'; }
-    else if (r.msk.cost > 1281) { cls = 'warn'; status = '需升 broker：' + r.msk.tierName; }
+    if (r.msk.overflow) { cls = 'over'; status = '超過 4× xlarge 容量（3,260 msg/s）→ 需重新評估'; }
+    else if (r.msk.cost > MSK_TIERS[0].cost) { cls = 'warn'; status = '需升 broker：' + r.msk.tierName; }
     else { cls = 'ok'; status = '4× m7g.large 足夠（≤1,630）'; }
     out.push(gate('MSK broker', status, cls, r.msk.rate / top * 100,
       `${r.msk.rate.toFixed(0)} msg/s · 容量上限 ${num(r.msk.limit)}（≤60% 安全線）`));

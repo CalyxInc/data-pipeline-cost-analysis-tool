@@ -24,10 +24,9 @@
   - `DC = 406 + H`
   - `PCV = 247 + H`
   - `loadcell = 406 + H`
-- **頂部 A/B toggle**（仿 `index.html` 的 storage-tabs）：
-  - Version A：M50 ≤ 4 TB（現況實情，CC-770 未開通）
-  - Version B：CC-770 開通後 M50 可 Extended 到 8 TB
-  - 切換即時重算 MongoDB 成本與總計。
+- **頂部 MongoDB 模型說明 banner**（靜態）：M50 + Extended Storage。
+
+> **Revision（2026-06-30）**：原設計有 A/B toggle（Version A M50≤4TB vs Version B M50→8TB）。[CC-770](https://calyxtechs.atlassian.net/browse/CC-770) 已確認 **M50 可開 Extended Storage 至 8 TB**（先前「120:1 卡在 ~3.84TB」的推測為誤判，經 Atlas Support 實測 slider 可拖到 8192GB）。因此 Version A / M60 分支作廢，工具改為**單一 Version-B 模型、移除 toggle**，頂部改放靜態說明 banner。
 
 ## 4. 成本模型（採「絕對公式」：所有裝置數都用同一套公式算，現況也照算）
 
@@ -77,16 +76,16 @@ msg/s = 937(其他感測器，固定) + loadcell×1 + DC×0.05 + PCV×0.00833
 ```
 fsUsed(GB) = 0.71 × (2,135 + 5.7 × loadcell)
 ```
-階梯：
+階梯（單一模型，CC-770 後）：
 
-| fsUsed | Version A（M50≤4TB） | Version B（M50→8TB） |
-|--------|---------------------|---------------------|
-| ≤ 4 TB | M50 ~$6,900 | M50 ~$6,900 |
-| 4 – 8 TB | M60 + Extended ~$11,000 | M50 + Extended ~$9,400 |
-| > 8 TB | M80 / sharding ~$18,000+ | ~$18,000+ |
+| fsUsed | tier | 月費 |
+|--------|------|------|
+| ≤ 4 TB | M50（base） | ~$6,900 |
+| 4 – 8 TB | M50 + Extended | ~$9,400 |
+| > 8 TB | M80 / sharding | ~$18,000+ |
 
 - 現況 fsUsed ≈ 0.71×(2,135 + 5.7×406) = ~3.16 TB（<4TB）→ **$6,900** ✓（文件實測 2.98 TB；階梯對結果無影響）。
-- +500 fsUsed ≈ 0.71×(2,135 + 5.7×906) = ~5.18 TB（4–8TB）→ A **$11,000** / B **$9,400** ✓。
+- +500 fsUsed ≈ 0.71×(2,135 + 5.7×906) = ~5.18 TB（4–8TB）→ **$9,400** ✓。
 
 ### 4.5 AWS IoT Core
 ```
@@ -107,11 +106,11 @@ IoT = loadcell × $4.96
 
 UI 在現況/hero 旁標註文件實測 $23,200 供對照，不誤導。
 
-## 5. 版面（頂部 toggle + 兩段）
+## 5. 版面（頂部 banner + 兩段）
 
-沿用 `index.html` 的 section-label / grid / panel / hero / cost-row / tier-card 結構。
+沿用 `index.html` 的 section-label / grid / panel / hero / cost-row 結構。
 
-1. **頂部**：MongoDB Version A / B toggle（storage-tabs 樣式）。
+1. **頂部**：MongoDB 模型靜態說明 banner（M50 + Extended，CC-770）。
 2. **Section 01 — 試算成本**：
    - 左 panel：`+houses` 滑桿；裝置總數唯讀顯示（DC / PCV / loadcell / 總相機 / 總 house）。
    - 右 panel：hero「月費合計」+「vs 現況 ×倍率」；5 列明細（EC2 / S3 / MSK / MongoDB / AWS IoT Core），每列含子細節（如 g6/m7g 台數、msg/s、fsUsed、tier 名）與比例 bar。
@@ -131,6 +130,6 @@ UI 在現況/hero 旁標註文件實測 $23,200 供對照，不誤導。
 
 ## 7. 渲染架構
 
-- 單一 `render()` 讀 `+houses` 與 A/B 狀態 → 算 5 項 → 更新 hero、明細列、容量關卡。
+- 單一 `render()` 讀 `+houses` → 算 5 項 → 更新 hero、明細列、容量關卡。
 - 沿用 `linkSlider()` 同步滑桿↔數字輸入。
-- A/B toggle 與 `index.html` storage tab 同款事件處理。
+- MongoDB 為單一模型，無 toggle、無狀態。
