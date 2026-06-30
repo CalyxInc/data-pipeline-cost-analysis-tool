@@ -838,7 +838,47 @@
   <div class="section-gap"></div>
 
   <div class="section-label">
-    <span class="section-label-text"><em>02</em>容量關卡 &nbsp;·&nbsp; Capacity Gates</span>
+    <span class="section-label-text"><em>02</em>單台邊際成本 &nbsp;·&nbsp; Per-Camera Margin Cost</span>
+    <span class="section-label-line"></span>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr;">
+    <!-- DC camera (+ loadcell) -->
+    <div class="panel">
+      <div class="panel-header">DC 相機（含 loadcell）<span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">per unit / month</span></div>
+      <div class="hero">
+        <div>
+          <div class="hero-label">每多賣一台的月成本</div>
+          <div class="hero-value" id="margin-dc">—</div>
+        </div>
+        <div class="hero-unit">USD / 台 / 月</div>
+      </div>
+      <div class="cost-rows" id="margin-dc-rows"></div>
+    </div>
+    <!-- PCV camera -->
+    <div class="panel">
+      <div class="panel-header" style="--teal:var(--purple)">PCV 相機<span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">per unit / month</span></div>
+      <div class="hero">
+        <div>
+          <div class="hero-label">每多賣一台的月成本</div>
+          <div class="hero-value" id="margin-pcv" style="color:var(--purple)">—</div>
+        </div>
+        <div class="hero-unit">USD / 台 / 月</div>
+      </div>
+      <div class="cost-rows" id="margin-pcv-rows"></div>
+    </div>
+  </div>
+
+  <div style="max-width:1000px;margin:10px auto 0;font-size:0.60rem;color:var(--muted);letter-spacing:0.03em;line-height:1.7">
+    說明：以上為「每多賣一台」的<strong style="color:var(--text)">邊際月費</strong>（EC2／S3 隨用量線性、IoT 按 loadcell；來源 0014 §3）。
+    MSK 為按訊息率攤分的共用成本；MongoDB compute（~$5,081/月）屬全 cluster <strong style="color:var(--text)">固定共用</strong>、規模越大每台攤越低，不計入單台邊際。
+    <strong style="color:var(--teal)">DC 約為 PCV 的 ~9.6×</strong>（主因 S3：DC 上傳頻率 6× × 每筆 2 張圖）；且每台 DC 還帶一個 loadcell。
+  </div>
+
+  <div class="section-gap"></div>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>03</em>容量關卡 &nbsp;·&nbsp; Capacity Gates</span>
     <span class="section-label-line"></span>
   </div>
 
@@ -892,6 +932,14 @@ const MONGO_COST = { m50: 6900, m50_ext: 9400, beyond: 18000 };
 // ── AWS IoT Core ──
 const IOT_PER_LC = 4.96;
 
+// ── per-camera marginal (variable) monthly cost — 0014 §3 ──
+// EC2 / S3 / IoT are derived from the model's continuous coefficients (exact);
+// MSK share and MongoDB storage/backup are 0014 §3 figures (cluster compute is
+// largely fixed, so its per-device marginal is an attributed share, not growth).
+const MSK_SHARE_DC  = 2.0;    // MSK attributed share / DC camera
+const MSK_SHARE_PCV = 0.33;   // MSK attributed share / PCV camera
+const MONGO_PER_LC  = 4.0;    // MongoDB storage + backup / loadcell
+
 function devices(houses) {
   return { dc: BASE_DC + houses, pcv: BASE_PCV + houses, lc: BASE_LC + houses };
 }
@@ -931,6 +979,19 @@ function calcMongo(d) {
 
 function calcIoT(d) { return { cost: d.lc * IOT_PER_LC }; }
 
+function calcMargin() {
+  const ec2DC  = DC_RATE  * GPU_FACTOR * G6_MONTHLY + (DC_RATE  / DC_M7G_THROUGHPUT)  * M7G_MONTHLY;
+  const ec2PCV = PCV_RATE * GPU_FACTOR * G6_MONTHLY + (PCV_RATE / PCV_M7G_THROUGHPUT) * M7G_MONTHLY;
+  const s3PerGB = S3_BASE_COST / S3_BASE_DATA;
+  const dc  = { ec2: ec2DC,  s3: S3_DC_GB  * s3PerGB, msk: MSK_SHARE_DC };
+  const pcv = { ec2: ec2PCV, s3: S3_PCV_GB * s3PerGB, msk: MSK_SHARE_PCV };
+  const lc  = { mongo: MONGO_PER_LC, iot: IOT_PER_LC };
+  dc.total  = dc.ec2 + dc.s3 + dc.msk;
+  pcv.total = pcv.ec2 + pcv.s3 + pcv.msk;
+  lc.total  = lc.mongo + lc.iot;
+  return { dc, pcv, lc, dcUnit: dc.total + lc.total, pcvUnit: pcv.total };
+}
+
 function calcAll(houses) {
   const d = devices(houses);
   const ec2 = calcEC2(d), s3 = calcS3(d), msk = calcMSK(d);
@@ -940,6 +1001,7 @@ function calcAll(houses) {
 /* CALC-END */
 
 const fmt0 = v => '$' + Math.round(v).toLocaleString('en-US');
+const fmt2 = v => '$' + v.toFixed(2);
 const num = v => Math.round(v).toLocaleString('en-US');
 
 function setRow(key, cost, total, detail) {
@@ -1044,6 +1106,30 @@ function renderGates(r) {
 
   document.getElementById('gates').innerHTML = out.join('');
 }
+
+function marginRow(label, val) {
+  return `<div class="cost-row"><div class="cost-left"><div class="cost-name" style="font-weight:500">${label}</div></div>`
+       + `<div class="cost-right"><div class="cost-value">${fmt2(val)}</div></div></div>`;
+}
+
+function renderMargin() {
+  const m = calcMargin();
+  document.getElementById('margin-dc').textContent  = fmt2(m.dcUnit);
+  document.getElementById('margin-pcv').textContent = fmt2(m.pcvUnit);
+  document.getElementById('margin-dc-rows').innerHTML =
+    marginRow('EC2 算力', m.dc.ec2) +
+    marginRow('S3 存圖', m.dc.s3) +
+    marginRow('MSK（訊息率攤分）', m.dc.msk) +
+    marginRow('loadcell · MongoDB storage', m.lc.mongo) +
+    marginRow('loadcell · AWS IoT Core', m.lc.iot);
+  document.getElementById('margin-pcv-rows').innerHTML =
+    marginRow('EC2 算力', m.pcv.ec2) +
+    marginRow('S3 存圖', m.pcv.s3) +
+    marginRow('MSK（訊息率攤分）', m.pcv.msk);
+}
+
+// per-camera marginal cost is constant (rate-based), so render it once
+renderMargin();
 
 render();
 </script>

@@ -6,7 +6,7 @@ const m = html.match(/\/\* CALC-START \*\/([\s\S]*?)\/\* CALC-END \*\//);
 assert(m, 'CALC-START/CALC-END markers not found in forecast.html');
 
 const factory = new Function(
-  m[1] + '\nreturn { devices, calcEC2, calcS3, calcMSK, calcMongo, calcIoT, calcAll, BASELINE_MEASURED_TOTAL, EC2_MEASURED };'
+  m[1] + '\nreturn { devices, calcEC2, calcS3, calcMSK, calcMongo, calcIoT, calcAll, calcMargin, BASELINE_MEASURED_TOTAL, EC2_MEASURED };'
 );
 const api = factory();
 
@@ -54,6 +54,19 @@ const approx = (a, b, tol, msg) => assert(Math.abs(a - b) <= tol, `${msg}: got $
 // aggregate lands at ~$43,579 — close to but not equal to the doc's rounded ~$43,700.
 {
   approx(api.calcAll(500).total, 43579, 20, '+500 total ~43.6k (single M50+Ext model)');
+}
+
+// ── per-camera marginal cost (0014 §3) ───────────────────────
+{
+  const m = api.calcMargin();
+  approx(m.dc.ec2, 8.3, 0.1, 'DC EC2 marginal ~$8.3');
+  approx(m.dc.s3, 18.5, 0.1, 'DC S3 marginal ~$18.5');
+  approx(m.dc.total, 28.8, 0.2, 'DC camera marginal subtotal ~$28.8');
+  approx(m.pcv.ec2, 2.1, 0.1, 'PCV EC2 marginal ~$2.1');
+  approx(m.pcv.total, 3.95, 0.2, 'PCV camera marginal ~$4.0');
+  approx(m.lc.total, 8.96, 0.05, 'loadcell marginal ~$9 (MongoDB $4 + IoT $4.96)');
+  approx(m.dcUnit, 37.8, 0.3, 'DC + loadcell unit marginal ~$37.8');
+  approx(m.pcvUnit, 3.95, 0.2, 'PCV unit marginal ~$4.0');
 }
 
 console.log('All forecast calc assertions passed ✓');

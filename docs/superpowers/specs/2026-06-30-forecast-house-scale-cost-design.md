@@ -115,8 +115,12 @@ UI 在現況/hero 旁標註文件實測 $23,200 供對照，不誤導。
    - 左 panel：`+houses` 滑桿；裝置總數唯讀顯示（DC / PCV / loadcell / 總相機 / 總 house）。
    - 右 panel：hero「月費合計」+「vs 現況 ×倍率」；5 列明細（EC2 / S3 / MSK / MongoDB / AWS IoT Core），每列含子細節（如 g6/m7g 台數、msg/s、fsUsed、tier 名）與比例 bar。
    - hero 旁標註現況實測 $23,200 對照。
-3. **Section 02 — 容量關卡**（capacity gates，視覺化跳階風險）：
-   - MongoDB：fsUsed vs 4TB / 8TB 牆（bar + tier card），trip 變色。
+3. **Section 02 — 單台邊際成本**（per-camera margin，老闆關注「賣一台 camera 的成本」）：
+   - 兩張並排卡：**DC 相機（含 loadcell）** 與 **PCV 相機**，各顯示每台月成本 hero + 明細（EC2 / S3 / MSK 攤分 / loadcell MongoDB / loadcell IoT）。
+   - 來源 0014 §3；EC2 / S3 / IoT 由模型連續係數導出（DC ~$37.8、PCV ~$4.0、~9.6×），MSK 為攤分、MongoDB compute 固定共用不計入。
+   - 由 `calcMargin()`（純函式，無參數，常數速率）算出，`renderMargin()` 渲染一次。
+4. **Section 03 — 容量關卡**（capacity gates，視覺化跳階風險）：
+   - MongoDB：fsUsed vs 4TB / 8TB 牆（bar），trip 變色。
    - MSK：msg/s vs broker 容量階梯。
    - （不含 GPU：g6 線性成長、無硬容量牆；`max_replicas` 只是 KEDA 設定值，非 tier 天花板，故不列為容量關卡。）
 
