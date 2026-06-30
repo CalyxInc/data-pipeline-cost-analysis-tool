@@ -935,6 +935,86 @@ function calcAll(houses, version) {
   return { d, ec2, s3, msk, mongo, iot, total: ec2.cost + s3.cost + msk.cost + mongo.cost + iot.cost };
 }
 /* CALC-END */
+
+const state = { version: 'A' };
+const fmt0 = v => '$' + Math.round(v).toLocaleString('en-US');
+const num = v => Math.round(v).toLocaleString('en-US');
+
+function setRow(key, cost, total, detail) {
+  document.getElementById('result-' + key).textContent = fmt0(cost);
+  document.getElementById('pct-' + key).textContent = (cost / total * 100).toFixed(1) + '%';
+  document.getElementById('bar-' + key).style.width = (cost / total * 100) + '%';
+  if (detail != null) document.getElementById(key + '-detail').textContent = detail;
+}
+
+function render() {
+  const houses = parseInt(document.getElementById('houses-input').value, 10) || 0;
+  const r = calcAll(houses, state.version);
+
+  // device readout
+  document.getElementById('dev-dc').textContent = num(r.d.dc);
+  document.getElementById('dev-pcv').textContent = num(r.d.pcv);
+  document.getElementById('dev-lc').textContent = num(r.d.lc);
+  document.getElementById('dev-cameras').textContent = num(r.d.dc + r.d.pcv);
+  document.getElementById('dev-houses').textContent = num(houses);
+
+  // hero
+  document.getElementById('fc-total').textContent = fmt0(r.total);
+  document.getElementById('fc-multiplier').textContent =
+    (r.total / BASELINE_MEASURED_TOTAL).toFixed(2) + '×';
+
+  // rows
+  setRow('ec2', r.ec2.cost, r.total, `g6 ${r.ec2.g6.toFixed(1)} 台 · m7g ${r.ec2.m7g} 台`);
+  setRow('s3', r.s3.cost, r.total, `新增資料 ${num(r.s3.data)} GB/月`);
+  setRow('msk', r.msk.cost, r.total, `${r.msk.rate.toFixed(0)} msg/s · ${r.msk.tierName}`);
+  setRow('mongo', r.mongo.cost, r.total, `fsUsed ${(r.mongo.fsUsed / 1000).toFixed(2)} TB · ${r.mongo.tierName}`);
+  setRow('iot', r.iot.cost, r.total, `${num(r.d.lc)} loadcell × $4.96`);
+
+  // tags
+  const mskTag = document.getElementById('msk-tag');
+  mskTag.textContent = r.msk.tierName;
+  mskTag.className = 'scheme-tag ' + (r.msk.cost > 1281 ? 'upgrade' : 'normal');
+  const mongoTag = document.getElementById('mongo-tag');
+  mongoTag.textContent = r.mongo.tierName;
+  mongoTag.className = 'scheme-tag ' + (r.mongo.tierName === 'M50' ? 'normal' : 'upgrade');
+
+  // note
+  document.getElementById('fc-note').textContent =
+    houses === 0
+      ? '現況：公式 right-size 後 EC2 ~$4,664（實測 ~$5,100，DC m7g over-provisioned）；總計 ~$22,760 vs 實測 $23,200。'
+      : '';
+
+  renderGates(r);  // defined in Task 4
+}
+
+function linkSlider(sliderId, inputId, min, max) {
+  const slider = document.getElementById(sliderId);
+  const input = document.getElementById(inputId);
+  slider.addEventListener('input', () => { input.value = slider.value; render(); });
+  input.addEventListener('input', () => {
+    let v = parseInt(input.value, 10);
+    if (isNaN(v)) return;
+    v = Math.max(min, Math.min(max, v));
+    input.value = v; slider.value = v; render();
+  });
+}
+
+// version A/B toggle
+document.querySelectorAll('.version-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.version-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.version = btn.dataset.version;
+    render();
+  });
+});
+
+linkSlider('houses-slider', 'houses-input', 0, 1600);
+
+// stub so Task 3 runs standalone before Task 4 lands renderGates
+if (typeof renderGates === 'undefined') { window.renderGates = function () {}; }
+
+render();
 </script>
 </body>
 </html>
