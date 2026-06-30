@@ -42,6 +42,10 @@ The entire application lives in `index.html` (~1,750 lines): HTML structure, CSS
 
 All cost constants originate from `benson-aws-account-oregon-ml-infra/implementation-plan/0003-pipeline-cost-analysis.md` (separate repo). When that document updates, open an OpenSpec change to sync constants into `index.html`.
 
+### Second Tool — `forecast.html` (0014 house-scale model)
+
+A separate static page implementing the 0014 forecast model (DC/PCV/**loadcell**, house-driven). Distinct from `index.html` (per-camera-per-month): driven by a single `+houses` slider over a fixed現況 baseline (DC 406 / PCV 247 / loadcell 406), with a MongoDB **Version A/B** toggle. Five core cost items: EC2 realtime, S3, MSK (stepped), MongoDB (fsUsed-stepped), AWS IoT Core. Calc logic is pure functions between `/* CALC-START */ … /* CALC-END */`; `verify.mjs` (`node verify.mjs`) asserts them against 0014's anchor values. Source of truth: `../calyx-infra/clusters/oregon-production/implementation-plan/0014-pipeline-cost-re-evaluation.md`.
+
 ### CSS Design System
 
 CSS custom properties define the color palette: `--teal` (primary), `--purple` (secondary), `--amber`, `--green`, `--red`, plus neutrals (`--bg`, `--surface`, `--border`, `--text`, `--muted`, `--dim`).
