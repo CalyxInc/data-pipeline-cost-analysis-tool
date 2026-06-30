@@ -1011,8 +1011,56 @@ document.querySelectorAll('.version-tab').forEach(btn => {
 
 linkSlider('houses-slider', 'houses-input', 0, 1600);
 
-// stub so Task 3 runs standalone before Task 4 lands renderGates
-if (typeof renderGates === 'undefined') { window.renderGates = function () {}; }
+const MONGO_MAX_REPLICAS_NOTE = 'KEDA max_replicas';
+function gate(title, status, statusClass, pct, detail) {
+  const cls = statusClass;
+  const w = Math.min(100, Math.max(0, pct));
+  return `<div class="gate ${cls}">
+    <div class="gate-head"><span class="gate-title">${title}</span><span class="gate-status">${status}</span></div>
+    <div class="gate-bar-wrap"><div class="gate-bar" style="width:${w}%"></div></div>
+    <div class="gate-detail">${detail}</div>
+  </div>`;
+}
+
+function renderGates(r) {
+  const out = [];
+
+  // MongoDB: fsUsed vs 4TB / 8TB
+  {
+    const tb = r.mongo.fsUsed / 1000;
+    const wall = state.version === 'A' ? 4 : 8;
+    let cls, status;
+    if (r.mongo.overflow) { cls = 'over'; status = '超過 8 TB → M80 / sharding'; }
+    else if (tb > 4) { cls = 'warn'; status = state.version === 'A' ? '4–8 TB → 升 M60 + Extended' : '4–8 TB → M50 + Extended'; }
+    else { cls = 'ok'; status = '在 4 TB 內 · M50'; }
+    out.push(gate('MongoDB fsUsed', status, cls, tb / wall * 100,
+      `fsUsed ${tb.toFixed(2)} TB / 牆 ${wall} TB（Version ${state.version}）`));
+  }
+
+  // MSK: msg/s vs broker capacity
+  {
+    const top = 3260;
+    let cls, status;
+    if (r.msk.overflow) { cls = 'over'; status = '超過 4× xlarge 容量（3,260 msg/s）'; }
+    else if (r.msk.cost > 1281) { cls = 'warn'; status = '需升 broker：' + r.msk.tierName; }
+    else { cls = 'ok'; status = '4× m7g.large 足夠（≤1,630）'; }
+    out.push(gate('MSK broker', status, cls, r.msk.rate / top * 100,
+      `${r.msk.rate.toFixed(0)} msg/s · 容量上限 ${num(r.msk.limit)}（≤60% 安全線）`));
+  }
+
+  // GPU: DC g6 vs max_replicas=10
+  {
+    const max = 10;
+    const dcG6 = r.ec2.dcG6;
+    let cls, status;
+    if (dcG6 > max) { cls = 'warn'; status = '超過 max_replicas=10 → 需調高上限 + 擴 GPU NodePool'; }
+    else { cls = 'ok'; status = '在 max_replicas=10 內'; }
+    out.push(gate('GPU (DC g6)', status, cls, dcG6 / max * 100,
+      `DC g6 平均 ${dcG6.toFixed(1)} 台 / max_replicas ${max}`));
+  }
+
+  document.getElementById('gates').innerHTML = out.join('');
+}
 
 render();
 </script>
