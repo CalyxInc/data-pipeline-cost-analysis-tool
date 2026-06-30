@@ -617,11 +617,14 @@ Append to `verify.mjs` (before the final `console.log`):
 
 ```js
 // ── full +500 total cross-check (A and B) ────────────────────
+// Exact totals use the precise node-cost constants (g6 = 0.805×720 = $579.6,
+// m7g = 0.653×720 = $470.16), so the aggregate lands at ~$45,179 (A) /
+// ~$43,579 (B) — close to but not equal to the doc's rounded ~$45,300.
 {
   const a = api.calcAll(500, 'A');
-  approx(a.total, 45294, 80, '+500 Version A total ~45.3k');
+  approx(a.total, 45179, 20, '+500 Version A total ~45.2k');
   const b = api.calcAll(500, 'B');
-  approx(b.total, 43694, 80, '+500 Version B total ~43.7k');
+  approx(b.total, 43579, 20, '+500 Version B total ~43.6k');
   approx(a.total - b.total, 1600, 1, 'A − B = M60 vs M50 compute premium ~$1,600');
 }
 ```
