@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>House-Scale 成本試算</title></head>
+<body>
+<script>
+/* CALC-START */
+// ── EC2 ──
+const G6_MONTHLY  = 0.805 * 720;   // $580 / g6.xlarge / month
+const M7G_MONTHLY = 0.653 * 720;   // $470 / m7g.4xlarge / month
+const DC_RATE  = 0.05;             // msg/s per DC camera
+const PCV_RATE = 1 / 120;          // msg/s per PCV camera (~0.00833)
+const LC_RATE  = 1.0;              // msg/s per loadcell
+const GPU_FACTOR = 0.267;          // KEDA avg fractional g6 nodes per msg/s (5.4/20.3)
+const DC_G6_MIN = 2, PCV_G6_MIN = 1;        // KEDA min replicas
+const DC_M7G_THROUGHPUT = 41.4;    // msg/s per m7g node (DC BWDC)
+const PCV_M7G_THROUGHPUT = 5.0;    // msg/s per m7g node (PCV VBWE)
+
+// ── baseline (現況) ──
+const BASE_DC = 406, BASE_PCV = 247, BASE_LC = 406;
+const BASELINE_MEASURED_TOTAL = 23200;   // doc measured core total
+const EC2_MEASURED = 5100;               // doc measured realtime EC2
+
+// ── S3 ──
+const S3_DC_GB = 261.56, S3_PCV_GB = 21.80;   // GB / camera / month
+const S3_BASE_COST = 7900;
+const S3_BASE_DATA = BASE_DC * S3_DC_GB + BASE_PCV * S3_PCV_GB;  // ~111,578 GB
+
+// ── MSK (fixed cluster cost, stepped) ──
+const MSK_OTHER = 937;             // other sensors msg/s, assumed constant
+const MSK_TIERS = [
+  { limit: 1630, cost: 1281, name: '4× m7g.large' },
+  { limit: 2450, cost: 1900, name: '6× m7g.large' },
+  { limit: 3260, cost: 2000, name: '4× m7g.xlarge' },
+];
+
+// ── MongoDB ──
+const MONGO_LOGICAL_RATIO = 0.71;  // logical→disk (compression + index)
+const MONGO_NONLC_GB = 2135;       // non-loadcell data (camera collections, no archive)
+const MONGO_PER_LC_GB = 5.7;       // logical GB per loadcell (183-day window)
+const TB = 1000;                   // GB per TB (decimal, matches doc fsUsed convention)
+const MONGO_COST = { m50: 6900, m60_ext: 11000, m50_ext: 9400, beyond: 18000 };
+
+// ── AWS IoT Core ──
+const IOT_PER_LC = 4.96;
+
+function devices(houses) {
+  return { dc: BASE_DC + houses, pcv: BASE_PCV + houses, lc: BASE_LC + houses };
+}
+
+function calcEC2(d) {
+  const dcFlow = d.dc * DC_RATE;
+  const pcvFlow = d.pcv * PCV_RATE;
+  const dcG6 = Math.max(DC_G6_MIN, dcFlow * GPU_FACTOR);
+  const g6 = dcG6 + Math.max(PCV_G6_MIN, pcvFlow * GPU_FACTOR);
+  const m7g = Math.ceil(dcFlow / DC_M7G_THROUGHPUT) + Math.ceil(pcvFlow / PCV_M7G_THROUGHPUT);
+  return { cost: g6 * G6_MONTHLY + m7g * M7G_MONTHLY, g6, m7g, dcG6 };
+}
+
+function calcS3(d) {
+  const data = d.dc * S3_DC_GB + d.pcv * S3_PCV_GB;
+  return { cost: S3_BASE_COST * data / S3_BASE_DATA, data };
+}
+
+function calcMSK(d) {
+  const rate = MSK_OTHER + d.lc * LC_RATE + d.dc * DC_RATE + d.pcv * PCV_RATE;
+  let tier = MSK_TIERS.find(t => rate <= t.limit);
+  const overflow = !tier;
+  if (!tier) tier = MSK_TIERS[MSK_TIERS.length - 1];
+  return { cost: tier.cost, rate, tierName: tier.name, limit: tier.limit, overflow };
+}
+
+function calcMongo(d, version) {
+  const fsUsed = MONGO_LOGICAL_RATIO * (MONGO_NONLC_GB + MONGO_PER_LC_GB * d.lc);
+  let cost, tierName, overflow = false;
+  if (fsUsed <= 4 * TB) { cost = MONGO_COST.m50; tierName = 'M50'; }
+  else if (fsUsed <= 8 * TB) {
+    if (version === 'B') { cost = MONGO_COST.m50_ext; tierName = 'M50 + Extended'; }
+    else { cost = MONGO_COST.m60_ext; tierName = 'M60 + Extended'; }
+  } else { cost = MONGO_COST.beyond; tierName = 'M80 / sharding'; overflow = true; }
+  return { cost, fsUsed, tierName, overflow };
+}
+
+function calcIoT(d) { return { cost: d.lc * IOT_PER_LC }; }
+
+function calcAll(houses, version) {
+  const d = devices(houses);
+  const ec2 = calcEC2(d), s3 = calcS3(d), msk = calcMSK(d);
+  const mongo = calcMongo(d, version), iot = calcIoT(d);
+  return { d, ec2, s3, msk, mongo, iot, total: ec2.cost + s3.cost + msk.cost + mongo.cost + iot.cost };
+}
+/* CALC-END */
+</script>
+</body>
+</html>
