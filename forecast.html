@@ -1,7 +1,853 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-<head><meta charset="UTF-8"><title>House-Scale 成本試算</title></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>House-Scale 成本試算</title>
+  <style>
+    :root {
+      --bg:         #f0f2f5;
+      --surface:    #ffffff;
+      --border:     #dde2ea;
+      --border-hi:  #c8d0db;
+      --text:       #1e2d3d;
+      --muted:      #7a90a8;
+      --dim:        #dde2ea;
+      --teal:       #0077cc;
+      --teal-dim:   rgba(0,119,204,0.07);
+      --teal-glow:  rgba(0,119,204,0.15);
+      --purple:     #7c3aed;
+      --purple-dim: rgba(124,58,237,0.07);
+      --red:        #dc2626;
+      --red-dim:    rgba(220,38,38,0.08);
+      --amber:      #b45309;
+      --amber-dim:  rgba(180,83,9,0.08);
+      --green:      #0d7a55;
+      --green-dim:  rgba(13,122,85,0.08);
+      --mono: ui-monospace, 'Cascadia Code', 'SF Mono', 'Fira Mono', 'Inconsolata', 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 14px; }
+
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 20px 40px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    header .title {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    header .subtitle {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    header .dot {
+      color: var(--border-hi);
+      margin: 0 4px;
+    }
+
+    /* ── Main grid ── */
+    .grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 780px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .panel-header::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+    }
+
+    .panel-body { padding: 20px 16px; }
+
+    /* ── Pipeline toggle ── */
+    .seg-control {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 3px;
+      gap: 3px;
+      margin-bottom: 24px;
+    }
+
+    .seg-control input[type="radio"] { display: none; }
+
+    .seg-control label {
+      display: block;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+
+    .seg-control label .freq {
+      display: block;
+      font-size: 0.62rem;
+      margin-top: 2px;
+      opacity: 0.6;
+    }
+
+    .seg-control input[type="radio"]:checked + label {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border: 1px solid rgba(14,240,200,0.2);
+    }
+
+    /* ── Param row ── */
+    .param { margin-bottom: 20px; }
+
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .param-name {
+      font-size: 0.72rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+
+    .param-name em {
+      font-style: normal;
+      color: var(--teal);
+      font-size: 0.80rem;
+    }
+
+    .param-range {
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+
+    .param-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Custom slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 2px;
+      background: var(--dim);
+      border-radius: 1px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal-glow);
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+
+    input[type="range"]:hover::-webkit-slider-thumb {
+      box-shadow: 0 0 14px var(--teal);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal-glow);
+      border: none;
+      cursor: pointer;
+    }
+
+    input[type="number"] {
+      width: 76px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--teal);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      padding: 5px 8px;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"]:focus { border-color: var(--teal); }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 0.3; }
+
+    /* ── Results panel ── */
+
+    /* Hero total */
+    .hero {
+      padding: 20px 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .hero-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .hero-value {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: -0.02em;
+      text-shadow: none;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .hero-unit {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+    }
+
+    /* Cost rows */
+    .cost-rows {
+      padding: 0 16px;
+    }
+
+    .cost-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .cost-row:last-child { border-bottom: none; }
+
+    .cost-left { flex: 1; min-width: 0; }
+
+    .cost-name {
+      font-size: 0.82rem;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .cost-sub {
+      font-size: 0.62rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cost-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      min-width: 80px;
+    }
+
+    .cost-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cost-pct {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+
+    /* Scheme badge */
+    .scheme-tag {
+      display: inline-block;
+      font-size: 0.58rem;
+      padding: 2px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+
+    .scheme-tag.normal {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.2);
+    }
+
+    .scheme-tag.upgrade {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+
+    /* Note / warnings */
+    .result-note-wrap {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      min-height: 32px;
+    }
+
+    #result-note {
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      line-height: 1.6;
+    }
+
+
+    /* Cost bar (visual proportion) */
+    .cost-bar-wrap {
+      height: 2px;
+      background: var(--dim);
+      border-radius: 1px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    .cost-bar {
+      height: 100%;
+      background: var(--teal);
+      border-radius: 1px;
+      transition: width 0.3s ease;
+      opacity: 0.5;
+    }
+
+    /* ── Section dividers ── */
+    .section-label {
+      max-width: 1000px;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label-text {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .section-label-text em {
+      font-style: normal;
+      color: var(--text);
+      margin-right: 6px;
+    }
+
+    .section-label-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-gap {
+      max-width: 1000px;
+      margin: 0 auto;
+      height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Fleet Total Cost section ── */
+    .fleet-section {
+      max-width: 1000px;
+      margin: 16px auto 0;
+    }
+
+    .batch-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .batch-row:last-child { border-bottom: none; }
+
+    .batch-num {
+      font-size: 0.65rem;
+      color: var(--muted);
+      min-width: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .batch-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .batch-field-label {
+      font-size: 0.60rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .batch-field input[type="number"] {
+      width: 68px;
+    }
+
+    .batch-subtotal {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .batch-subtotal-label {
+      font-size: 0.58rem;
+      color: var(--dim);
+      display: block;
+      text-align: right;
+      margin-bottom: 1px;
+    }
+
+    .batch-delete {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.70rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      line-height: 1;
+    }
+
+    .batch-delete:hover:not(:disabled) {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .batch-delete:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .add-batch-btn {
+      background: none;
+      border: 1px dashed var(--border-hi);
+      border-radius: 3px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.70rem;
+      padding: 7px 0;
+      cursor: pointer;
+      width: 100%;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 8px;
+    }
+
+    .add-batch-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* ── MSK Capacity Planner ── */
+    .tier-card {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 10px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .tier-card-name {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    .tier-card-cost {
+      font-size: 0.80rem;
+      color: var(--text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tier-card-limit {
+      font-size: 0.60rem;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    .tier-card.active {
+      border-color: rgba(0,119,204,0.4);
+      background: var(--teal-dim);
+    }
+
+    .tier-card.active .tier-card-name {
+      color: var(--teal);
+    }
+
+    .tier-card.active.upgrade {
+      border-color: rgba(180,83,9,0.35);
+      background: var(--amber-dim);
+    }
+
+    .tier-card.active.upgrade .tier-card-name,
+    .tier-card.active.upgrade .tier-card-cost {
+      color: var(--amber);
+    }
+
+    .msk-cap-bar {
+      display: flex;
+      height: 8px;
+      background: var(--dim);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 2px 0 6px;
+    }
+
+    #msk-bar-dc {
+      height: 100%;
+      background: var(--teal);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    #msk-bar-pcv {
+      height: 100%;
+      background: rgba(13,122,85,0.45);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    .msk-cap-bar.overflow #msk-bar-dc,
+    .msk-cap-bar.overflow #msk-bar-pcv {
+      background: var(--amber);
+      opacity: 1;
+    }
+
+    .msk-cap-summary {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .msk-cap-warning {
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+
+    /* ── MongoDB capacity planner ── */
+    .tier-card.active.overload {
+      border-color: rgba(220,38,38,0.35);
+      background: var(--red-dim);
+    }
+
+    .tier-card.active.overload .tier-card-name,
+    .tier-card.active.overload .tier-card-cost {
+      color: var(--red);
+    }
+
+    .mongo-cap-bar {
+      display: flex;
+      height: 8px;
+      background: var(--dim);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 2px 0 6px;
+    }
+
+    #mongo-bar-dc {
+      height: 100%;
+      background: var(--purple);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    #mongo-bar-pcv {
+      height: 100%;
+      background: rgba(124,58,237,0.38);
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+    }
+
+    .mongo-cap-bar.overflow #mongo-bar-dc,
+    .mongo-cap-bar.overflow #mongo-bar-pcv {
+      background: var(--red);
+      opacity: 1;
+    }
+
+    .mongo-cap-summary {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mongo-cap-detail {
+      font-size: 0.60rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+
+    .mongo-cap-warning {
+      font-size: 0.62rem;
+      color: var(--red);
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+
+    /* ── Storage Mode Tabs ── */
+    .storage-tabs {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .storage-tab {
+      flex: 1;
+      padding: 10px 16px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .storage-tab:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+    .storage-tab.active {
+      background: var(--teal);
+      color: #fff;
+    }
+    .storage-tab:not(.active):hover {
+      background: var(--teal-dim);
+      color: var(--teal);
+    }
+
+    /* version A/B toggle reuses .storage-tabs / .storage-tab markup+style */
+    /* device readout */
+    .dev-readout { display:flex; flex-wrap:wrap; gap:14px 22px; margin-top:18px; padding-top:16px; border-top:1px solid var(--border); }
+    .dev-item { display:flex; flex-direction:column; gap:2px; }
+    .dev-item .v { font-size:1.15rem; font-weight:700; color:var(--teal); font-variant-numeric:tabular-nums; }
+    .dev-item .k { font-size:0.58rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
+    .hero-sub { font-size:0.60rem; color:var(--muted); margin-top:4px; letter-spacing:0.04em; }
+    .multiplier { color:var(--purple); font-weight:700; }
+    /* capacity gate card */
+    .gate { border:1px solid var(--border); border-radius:4px; padding:14px 16px; }
+    .gate + .gate { margin-top:12px; }
+    .gate-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+    .gate-title { font-size:0.82rem; font-weight:600; color:var(--text); }
+    .gate-status { font-size:0.62rem; letter-spacing:0.06em; }
+    .gate.ok .gate-status { color:var(--green); }
+    .gate.warn { border-color:rgba(180,83,9,0.35); background:var(--amber-dim); }
+    .gate.warn .gate-status { color:var(--amber); }
+    .gate.over { border-color:rgba(220,38,38,0.35); background:var(--red-dim); }
+    .gate.over .gate-status { color:var(--red); }
+    .gate-bar-wrap { height:8px; background:var(--dim); border-radius:4px; overflow:hidden; margin:6px 0; }
+    .gate-bar { height:100%; background:var(--teal); border-radius:4px; transition:width 0.3s ease; }
+    .gate.warn .gate-bar { background:var(--amber); }
+    .gate.over .gate-bar { background:var(--red); }
+    .gate-detail { font-size:0.62rem; color:var(--muted); font-variant-numeric:tabular-nums; letter-spacing:0.04em; }
+  </style>
+</head>
 <body>
+
+  <header>
+    <span class="title">House-Scale Forecast</span>
+    <span class="subtitle">擴增 house 成本試算<span class="dot">·</span>0014 model<span class="dot">·</span>DC + PCV + loadcell</span>
+  </header>
+
+  <!-- MongoDB Version toggle -->
+  <div class="storage-tabs">
+    <button class="storage-tab version-tab active" data-version="A">Version A · M50 ≤ 4 TB（現況）</button>
+    <button class="storage-tab version-tab" data-version="B">Version B · M50 → 8 TB（CC-770）</button>
+  </div>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>01</em>試算成本 &nbsp;·&nbsp; Forecast Cost</span>
+    <span class="section-label-line"></span>
+  </div>
+
+  <div class="grid">
+    <!-- Left: input -->
+    <div class="panel">
+      <div class="panel-header">Parameters</div>
+      <div class="panel-body">
+        <div class="param">
+          <div class="param-header">
+            <span class="param-name"><em>+Houses</em> &nbsp;新增 house 數</span>
+            <span class="param-range">0 – 1,600</span>
+          </div>
+          <div class="param-controls">
+            <input type="range" id="houses-slider" min="0" max="1600" value="500">
+            <input type="number" id="houses-input" min="0" max="1600" value="500">
+          </div>
+        </div>
+        <div style="font-size:0.60rem;color:var(--muted);letter-spacing:0.04em;line-height:1.6">
+          每 house = +1 DC +1 PCV +1 loadcell，疊加於現況基準（DC 406 / PCV 247 / loadcell 406）
+        </div>
+        <div class="dev-readout">
+          <div class="dev-item"><span class="v" id="dev-dc">—</span><span class="k">DC</span></div>
+          <div class="dev-item"><span class="v" id="dev-pcv">—</span><span class="k">PCV</span></div>
+          <div class="dev-item"><span class="v" id="dev-lc">—</span><span class="k">Loadcell</span></div>
+          <div class="dev-item"><span class="v" id="dev-cameras">—</span><span class="k">總相機</span></div>
+          <div class="dev-item"><span class="v" id="dev-houses">—</span><span class="k">總 house</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: results -->
+    <div class="panel">
+      <div class="panel-header">Cost Breakdown <span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">core 5 items / month</span></div>
+      <div class="hero">
+        <div>
+          <div class="hero-label">核心月費合計</div>
+          <div class="hero-value" id="fc-total">—</div>
+          <div class="hero-sub">vs 現況 <span class="multiplier" id="fc-multiplier">—</span> &nbsp;·&nbsp; 現況實測基準 ~$23,200</div>
+        </div>
+        <div class="hero-unit">USD / 月</div>
+      </div>
+      <div class="cost-rows">
+        <div class="cost-row">
+          <div class="cost-left"><div class="cost-name">EC2 realtime</div><div class="cost-sub" id="ec2-detail">—</div><div class="cost-bar-wrap"><div class="cost-bar" id="bar-ec2" style="width:0%"></div></div></div>
+          <div class="cost-right"><div class="cost-value" id="result-ec2">—</div><div class="cost-pct" id="pct-ec2">—</div></div>
+        </div>
+        <div class="cost-row">
+          <div class="cost-left"><div class="cost-name">S3 (ai-eye-images)</div><div class="cost-sub" id="s3-detail">—</div><div class="cost-bar-wrap"><div class="cost-bar" id="bar-s3" style="width:0%"></div></div></div>
+          <div class="cost-right"><div class="cost-value" id="result-s3">—</div><div class="cost-pct" id="pct-s3">—</div></div>
+        </div>
+        <div class="cost-row">
+          <div class="cost-left"><div class="cost-name">MSK <span class="scheme-tag normal" id="msk-tag">—</span></div><div class="cost-sub" id="msk-detail">—</div><div class="cost-bar-wrap"><div class="cost-bar" id="bar-msk" style="width:0%"></div></div></div>
+          <div class="cost-right"><div class="cost-value" id="result-msk">—</div><div class="cost-pct" id="pct-msk">—</div></div>
+        </div>
+        <div class="cost-row">
+          <div class="cost-left"><div class="cost-name">MongoDB Atlas <span class="scheme-tag normal" id="mongo-tag">—</span></div><div class="cost-sub" id="mongo-detail">—</div><div class="cost-bar-wrap"><div class="cost-bar" id="bar-mongo" style="width:0%"></div></div></div>
+          <div class="cost-right"><div class="cost-value" id="result-mongo">—</div><div class="cost-pct" id="pct-mongo">—</div></div>
+        </div>
+        <div class="cost-row">
+          <div class="cost-left"><div class="cost-name">AWS IoT Core</div><div class="cost-sub" id="iot-detail">—</div><div class="cost-bar-wrap"><div class="cost-bar" id="bar-iot" style="width:0%"></div></div></div>
+          <div class="cost-right"><div class="cost-value" id="result-iot">—</div><div class="cost-pct" id="pct-iot">—</div></div>
+        </div>
+      </div>
+      <div class="result-note-wrap"><div id="fc-note"></div></div>
+    </div>
+  </div>
+
+  <div class="section-gap"></div>
+
+  <div class="section-label">
+    <span class="section-label-text"><em>02</em>容量關卡 &nbsp;·&nbsp; Capacity Gates</span>
+    <span class="section-label-line"></span>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr;">
+    <div class="panel">
+      <div class="panel-header">Capacity Gates <span style="margin-left:auto;font-size:0.60rem;color:var(--muted);letter-spacing:0">跳階風險</span></div>
+      <div class="panel-body" id="gates"></div>
+    </div>
+  </div>
+
 <script>
 /* CALC-START */
 // ── EC2 ──
