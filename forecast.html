@@ -1039,16 +1039,8 @@ function renderGates(r) {
       `${r.msk.rate.toFixed(0)} msg/s · 容量上限 ${num(r.msk.limit)}（≤60% 安全線）`));
   }
 
-  // GPU: DC g6 vs max_replicas=10
-  {
-    const max = 10;
-    const dcG6 = r.ec2.dcG6;
-    let cls, status;
-    if (dcG6 > max) { cls = 'warn'; status = '超過 max_replicas=10 → 需調高上限 + 擴 GPU NodePool'; }
-    else { cls = 'ok'; status = '在 max_replicas=10 內'; }
-    out.push(gate('GPU (DC g6)', status, cls, dcG6 / max * 100,
-      `DC g6 平均 ${dcG6.toFixed(1)} 台 / max_replicas ${max}`));
-  }
+  // (GPU g6 is linear growth with no hard capacity wall — max_replicas is a
+  //  KEDA config knob, not a tier ceiling — so it is not a capacity gate.)
 
   document.getElementById('gates').innerHTML = out.join('');
 }

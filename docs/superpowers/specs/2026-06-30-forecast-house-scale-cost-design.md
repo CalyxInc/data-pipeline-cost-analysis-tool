@@ -118,7 +118,7 @@ UI 在現況/hero 旁標註文件實測 $23,200 供對照，不誤導。
 3. **Section 02 — 容量關卡**（capacity gates，視覺化跳階風險）：
    - MongoDB：fsUsed vs 4TB / 8TB 牆（bar + tier card），trip 變色。
    - MSK：msg/s vs broker 容量階梯。
-   - GPU：DC g6 台數 vs `max_replicas = 10`，超過顯示「需調高上限 + 擴 GPU NodePool」警告。
+   - （不含 GPU：g6 線性成長、無硬容量牆；`max_replicas` 只是 KEDA 設定值，非 tier 天花板，故不列為容量關卡。）
 
 ## 6. 明確排除（YAGNI / 0014 無此項）
 
