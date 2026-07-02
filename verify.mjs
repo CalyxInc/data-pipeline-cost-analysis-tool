@@ -48,9 +48,9 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
   // linear items
   approx(r.ec2.total, 5200, 1, 'EC2 margin total = 500 × $10.4');
   approx(r.ec2.perHouse, 10.4, 0.01, 'EC2 per-house = $10.4');
-  // S3 per-house = (0.04+1.9·12)+(0.05+0.09·12) = 22.84 + 1.13 = 23.97
-  approx(r.s3.perHouse, 23.97, 0.01, 'S3 per-house at N=12');
-  approx(r.s3.total, 11985, 1, 'S3 margin total at N=12');
+  // S3 per-house = (0.04+1.4·12)+(0.05+0.10·12) = 16.84 + 1.25 = 18.09
+  approx(r.s3.perHouse, 18.09, 0.01, 'S3 per-house at N=12');
+  approx(r.s3.total, 9045, 1, 'S3 margin total at N=12');
   approx(r.iot.total, 2480, 1, 'IoT margin total = 500 × $4.96');
   // stepped increments (over baseline)
   assert.equal(r.msk.total, 719, 'MSK increment = $2,000 − $1,281');
@@ -58,9 +58,9 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
   assert.equal(r.mongo.total, 2500, 'MongoDB increment = $9,400 − $6,900');
   assert.equal(r.mongo.tierName, 'M50 + Extended', '+500 MongoDB tier');
   assert.equal(r.mongo.upgraded, true, '+500 crosses MongoDB tier');
-  // aggregate
-  approx(r.marginTotal, 22884, 2, '+500/N=12 margin total');
-  approx(r.perHouse, 45.77, 0.02, '+500/N=12 avg per-house');
+  // aggregate: 5200 + 9045 + 2480 + 719 + 2500 = 19944
+  approx(r.marginTotal, 19944, 2, '+500/N=12 margin total');
+  approx(r.perHouse, 39.89, 0.02, '+500/N=12 avg per-house');
 }
 
 // ── S3 grows with N; other items flat in N ────────────────────
@@ -93,8 +93,8 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
 {
   const mac = api.calcMacro(500, 12);
   assert.equal(mac.base, 34614, 'macro base');
-  approx(mac.margin, 22884, 2, 'macro margin = calcMargin total');
-  approx(mac.total, 57498, 2, 'macro grand total = base + margin');
+  approx(mac.margin, 19944, 2, 'macro margin = calcMargin total');
+  approx(mac.total, 54558, 2, 'macro grand total = base + margin');
 }
 
 // ── M=0 degenerate: linear marginal rate, no stepped increment ─
@@ -102,8 +102,8 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
   const r = api.calcMargin(0, 12);
   assert.equal(r.msk.total, 0, 'M=0 no MSK increment');
   assert.equal(r.mongo.total, 0, 'M=0 no MongoDB increment');
-  // per-house = linear-only next-house rate = 10.4 + (0.04+1.9·12)+(0.05+0.09·12) + 4.96
-  approx(r.perHouse, 10.4 + 23.97 + 4.96, 0.02, 'M=0 per-house = linear next-house rate');
+  // per-house = linear-only next-house rate = 10.4 + (0.04+1.4·12)+(0.05+0.10·12) + 4.96
+  approx(r.perHouse, 10.4 + 18.09 + 4.96, 0.02, 'M=0 per-house = linear next-house rate');
 }
 
 console.log('All forecast calc assertions passed ✓');

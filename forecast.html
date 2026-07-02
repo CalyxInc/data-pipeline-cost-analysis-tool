@@ -264,9 +264,9 @@
     .chip.dc  { background: var(--green-dim); color: var(--green-deep); }
     .chip.pcv { background: var(--slate-dim); color: var(--slate); }
     .chip.lc  { background: var(--amber-dim); color: var(--amber); }
-    .cost-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 92px; }
+    .cost-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 158px; }
     .cost-value { font-size: 1.08rem; font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; font-family: var(--mono); }
-    .cost-per { font-size: 0.6rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .cost-per { font-size: 0.62rem; color: var(--muted); font-variant-numeric: tabular-nums; font-family: var(--mono); white-space: nowrap; letter-spacing: -0.01em; }
 
     .cost-bar-wrap { height: 3px; background: var(--dim); border-radius: 2px; margin-top: 8px; overflow: hidden; }
     .cost-bar { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s ease; opacity: 0.65; }
@@ -453,8 +453,8 @@ const BASE_BILL_TOTAL = BASE_BILL.s3 + BASE_BILL.ec2 + BASE_BILL.mongo + BASE_BI
 const EC2_DC = 8.3, EC2_PCV = 2.1;
 
 // ═══ S3 邊際 f(N) = 桶A基底 + 桶B累積·N（$/相機/月，0014 §2/§3 (A′)）═══
-const S3_DC_A = 0.04, S3_DC_B = 1.9;    // DC：1.7 + 95·N GB
-const S3_PCV_A = 0.05, S3_PCV_B = 0.09; // PCV：2.3 + 4·N GB
+const S3_DC_A = 0.04, S3_DC_B = 1.4;    // DC：1.7 + 68·N GB
+const S3_PCV_A = 0.05, S3_PCV_B = 0.10; // PCV：2.3 + 4.5·N GB
 
 // ═══ AWS IoT Core（$/loadcell/月，0014 §3）═══
 const IOT_PER_LC = 4.96;
@@ -557,8 +557,18 @@ const num  = v => Math.round(v).toLocaleString('en-US');
 function getM() { return parseInt(document.getElementById('m-input').value, 10) || 0; }
 function getN() { return parseInt(document.getElementById('n-input').value, 10) || 0; }
 
-// one margin cost row (label + DC/PCV/LC detail chips + per-house $ + total $ + bar)
-function costRow(name, badge, subHtml, perHouse, total, maxPer, barClass) {
+// per-house ↔ total formula line (direction-aware):
+//   linear  → per-house is primitive:  $10.40 × 500 = $5,200
+//   stepped → total increment primitive: $719 ÷ 500 = $1.44
+function perFormula(perHouse, total, M, stepped) {
+  if (M <= 0) return stepped ? '無跨階增量' : `${fmt2(perHouse)} / house`;
+  return stepped
+    ? `總 ${fmt0(total)} ÷ ${num(M)} = ${fmt2(perHouse)}`
+    : `${fmt2(perHouse)} × ${num(M)} = 總 ${fmt0(total)}`;
+}
+
+// one margin cost row (label + DC/PCV/LC detail chips + per-house $ + formula + bar)
+function costRow(name, badge, subHtml, perHouse, total, maxPer, barClass, stepped, M) {
   const pct = maxPer > 0 ? Math.min(100, perHouse / maxPer * 100) : 0;
   return `<div class="cost-row">
     <div class="cost-left">
@@ -568,7 +578,7 @@ function costRow(name, badge, subHtml, perHouse, total, maxPer, barClass) {
     </div>
     <div class="cost-right">
       <div class="cost-value">${fmt2(perHouse)}</div>
-      <div class="cost-per">/house · 總 ${fmt0(total)}</div>
+      <div class="cost-per">${perFormula(perHouse, total, M, stepped)}</div>
     </div>
   </div>`;
 }
@@ -583,26 +593,26 @@ function renderMargin(r) {
   const maxPer = Math.max(r.ec2.perHouse, r.s3.perHouse, r.iot.perHouse, r.msk.perHouse, r.mongo.perHouse, 0.01);
 
   const rows = [];
-  // EC2
+  // EC2 (linear)
   rows.push(costRow('EC2 realtime', '',
-    `<span class="chip dc">DC ${fmt2(r.ec2.dc)}</span><span class="chip pcv">PCV ${fmt2(r.ec2.pcv)}</span> GPU 切割 + CPU 吞吐`,
-    r.ec2.perHouse, r.ec2.total, maxPer, ''));
-  // S3
+    `<span class="chip dc">DC ${fmt2(r.ec2.dc)}</span><span class="chip pcv">PCV ${fmt2(r.ec2.pcv)}</span> GPU 切割 + CPU 吞吐 · 線性`,
+    r.ec2.perHouse, r.ec2.total, maxPer, '', false, r.M));
+  // S3 (linear, ∝ N)
   rows.push(costRow('S3 存圖', '',
     `<span class="chip dc">DC ${fmt2(r.s3.dc)}</span><span class="chip pcv">PCV ${fmt2(r.s3.pcv)}</span> ∝ 上線月數 N=${r.N}（永久累積）`,
-    r.s3.perHouse, r.s3.total, maxPer, ''));
+    r.s3.perHouse, r.s3.total, maxPer, '', false, r.M));
   // MSK (stepped)
   rows.push(costRow('MSK', badgeHtml(r.msk.tierName, r.msk.upgraded, r.msk.overflow),
     `<span class="chip lc">loadcell 主導</span>${r.msk.rate.toFixed(0)} msg/s · 共用階梯${r.msk.upgraded ? ' · <span style="color:var(--amber)">已跨階升級</span>' : ''}`,
-    r.msk.perHouse, r.msk.total, maxPer, 'lc-bar'));
+    r.msk.perHouse, r.msk.total, maxPer, 'lc-bar', true, r.M));
   // MongoDB (stepped)
   rows.push(costRow('MongoDB Atlas', badgeHtml(r.mongo.tierName, r.mongo.upgraded, r.mongo.overflow),
     `<span class="chip lc">loadcell + 相機</span>fsUsed ${(r.mongo.fsUsed / 1000).toFixed(2)} TB · 共用階梯${r.mongo.overflow ? ' · <span style="color:var(--red)">需 M80 / sharding</span>' : (r.mongo.upgraded ? ' · <span style="color:var(--amber)">已開 Extended</span>' : '')}`,
-    r.mongo.perHouse, r.mongo.total, maxPer, 'lc-bar'));
-  // IoT
+    r.mongo.perHouse, r.mongo.total, maxPer, 'lc-bar', true, r.M));
+  // IoT (linear)
   rows.push(costRow('AWS IoT Core', '',
     `<span class="chip lc">loadcell $4.96</span>線性 ∝ loadcell 數`,
-    r.iot.perHouse, r.iot.total, maxPer, 'lc-bar'));
+    r.iot.perHouse, r.iot.total, maxPer, 'lc-bar', false, r.M));
 
   document.getElementById('margin-rows').innerHTML = rows.join('');
 }
