@@ -42,6 +42,15 @@ The entire application lives in `index.html` (~1,750 lines): HTML structure, CSS
 
 All cost constants originate from `benson-aws-account-oregon-ml-infra/implementation-plan/0003-pipeline-cost-analysis.md` (separate repo). When that document updates, open an OpenSpec change to sync constants into `index.html`.
 
+### Second Tool — `forecast.html` (0014 house-scale model)
+
+A separate static page implementing the 0014 forecast model (DC/PCV/**loadcell**, house-driven). Distinct from `index.html` (per-camera-per-month). Boss-facing tool with **two blocks**, driven by two sliders — **M** (houses added, 0–1,600) and **N** (avg months online, 0–36) — over a fixed現況 baseline (DC 406 / PCV 247 / loadcell 406; 1 house = +1 DC +1 PCV +1 loadcell):
+
+- **Section 01 — Per-House Margin** (`calcMargin(M, N)`): marginal monthly cost of the M added houses across the core five items, with DC/PCV/loadcell detail. Two cost types: **linear** (fixed $/device — EC2 DC $8.3/PCV $2.1, IoT $4.96/loadcell) with **S3 the only N-dependent item** (bucket-A base + bucket-B accumulation ∝ N: DC `$0.04+$1.4·N`, PCV `$0.05+$0.10·N`, per 0014 §2/§3); and **stepped** (MSK, MongoDB) where per-house = (tier cost after M − baseline tier) ÷ M, so it jumps as M crosses a tier.
+- **Section 02 — Projected Monthly Total** (`calcMacro(M, N)`): dark hero card. base (6-month full bill **$34,614** = core-5 $23,200 + EKS/Rerun/overhead) + Section-01 margin = projected total.
+
+Tier models: **MSK** stepped by msg/s (`mskCost`) — 4× m7g.large ≤1,630 ($1,281) → 4× xlarge ≤3,260 (~$2,000) → 4× 2xlarge ≤6,520 (~$3,400); crosses at ~+290 / ~+1,830 houses. **MongoDB** stepped by fsUsed (`mongoCost`, `mongoFsUsed`) from a 3-collection breakdown (loadCell ∝ loadcell + aIEyeImageCatalog ∝ DC+PCV + animalVisual ∝ PCV, ÷0.89) — M50 ≤4 TB ($6,900) → M50+Extended ≤8 TB (~$9,400, per **CC-770**) → M80/sharding >8 TB; crosses at ~+113 / ~+587 houses. Calc logic is pure functions between `/* CALC-START */ … /* CALC-END */`; `verify.mjs` (`node verify.mjs`) asserts them against 0014's anchor values. **Design system**: sage-green / charcoal / off-white (`--green` primary, `--slate` for PCV, `--amber` for loadcell/tier-upgrade, dark `--ink` macro card) — not the `index.html` cyan/purple palette. Source of truth: `../calyx-infra/clusters/oregon-production/implementation-plan/0014-pipeline-cost-re-evaluation.md`.
+
 ### CSS Design System
 
 CSS custom properties define the color palette: `--teal` (primary), `--purple` (secondary), `--amber`, `--green`, `--red`, plus neutrals (`--bg`, `--surface`, `--border`, `--text`, `--muted`, `--dim`).
