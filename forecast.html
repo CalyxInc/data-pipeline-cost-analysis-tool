@@ -311,6 +311,73 @@
       color: #6cc79a; font-weight: 700; margin-bottom: 6px;
     }
     .macro-sub { font-size: 0.66rem; color: #8fa396; margin-bottom: 18px; letter-spacing: 0.02em; }
+    /* dynamic macro-row sub detail chips */
+    .macro-rk .rsub .cd { font-family: var(--mono); color: #cfe0d5; }
+    .macro-row.rerun .rlabel { color: #e6b78a; }
+    .macro-row.rerun .macro-rv { color: #e6b78a; }
+    .macro-row.step .rsub .tier { color: #e6b78a; font-weight: 600; }
+    .macro-row.muted .macro-rv { color: #7d8f83; }
+
+    /* ── Batch editor (Block 2) ── */
+    .batch-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+    }
+    .batch-num {
+      font-family: var(--mono); font-size: 0.7rem; font-weight: 700;
+      color: var(--green-deep); background: var(--green-hi);
+      width: 30px; height: 26px; border-radius: 6px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .batch-field { display: flex; flex-direction: column; gap: 3px; }
+    .batch-field-label { font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .batch-field input[type="number"] { width: 74px; padding: 5px 8px; font-size: 0.8rem; }
+    .batch-subtotal { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .batch-subtotal-label { font-size: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .batch-subtotal-val { font-family: var(--mono); font-size: 0.9rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .batch-delete {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface-2);
+      color: var(--muted); cursor: pointer; font-size: 0.68rem; line-height: 1;
+      transition: all 0.15s;
+    }
+    .batch-delete:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+    .batch-delete:disabled { opacity: 0.3; cursor: not-allowed; }
+    .add-batch-btn {
+      margin-top: 14px; width: 100%; padding: 10px;
+      border: 1px dashed var(--border-hi); background: var(--surface-2);
+      color: var(--green-deep); border-radius: 8px; cursor: pointer;
+      font-family: var(--sans); font-size: 0.76rem; font-weight: 600;
+      letter-spacing: 0.02em; transition: all 0.15s;
+    }
+    .add-batch-btn:hover { border-color: var(--green); background: var(--green-dim); }
+
+    /* rerun toggle */
+    .rerun-toggle {
+      display: flex; align-items: flex-start; gap: 10px; margin-top: 20px;
+      padding-top: 16px; border-top: 1px solid var(--border); cursor: pointer;
+      user-select: none;
+    }
+    .rerun-toggle input { display: none; }
+    .rt-box {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; margin-top: 1px;
+      border: 1.5px solid var(--border-hi); background: var(--surface-2);
+      position: relative; transition: all 0.15s;
+    }
+    .rerun-toggle input:checked + .rt-box { background: var(--amber); border-color: var(--amber); }
+    .rerun-toggle input:checked + .rt-box::after {
+      content: '✓'; position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center; color: #fff; font-size: 0.66rem; font-weight: 700;
+    }
+    .rt-text { font-size: 0.72rem; color: var(--text); font-weight: 600; line-height: 1.5; }
+    .rt-text em { font-style: normal; color: var(--amber); font-family: var(--mono); font-weight: 700; }
+    .rt-hint { display: block; font-size: 0.6rem; color: var(--muted); font-weight: 400; margin-top: 3px; }
+
+    /* fleet tier readout */
+    .fleet-tier-readout { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 11px; }
+    .ftr-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .ftr-k { font-size: 0.72rem; color: var(--text); font-weight: 600; display: flex; align-items: center; gap: 7px; }
+    .ftr-v { font-size: 0.62rem; color: var(--muted); font-family: var(--mono); text-align: right; }
 
     /* footnote */
     .footnote {
@@ -330,8 +397,10 @@
 
   <div class="note-banner">
     每 <strong>house</strong> = 1 DC 相機 + 1 PCV 相機 + 1 loadcell，疊加於現況基準（DC 406 / PCV 247 / loadcell 406）。
-    邊際成本僅含<strong>核心五項</strong>（EC2 realtime、S3、MSK、MongoDB、AWS IoT Core），<strong>不含</strong> EKS 平台、Rerun 批次與共用 overhead（不隨相機數線性成長）。
-    <span class="hl">S3</span> 隨上線月數 N 累積；<span class="hl">MSK / MongoDB</span> 為階梯計費，跨階時每 house 分攤價會跳動。
+    <strong>區塊 01</strong> 探索單台邊際率（獨立 M/N 滑桿）；<strong>區塊 02</strong> 是專案艦隊模型——動態新增多筆批次部署（各有自己的 M houses、N 上線月數），
+    <span class="hl">6 月帳單 base + Σ 批次 + MSK/MongoDB 共用階梯增量 = 專案總月費</span>。
+    <span class="hl">S3</span> 隨各批次 N 累積；<span class="hl">MSK / MongoDB</span> 為全艦隊共用階梯，依所有批次 house 總數跨階。
+    base 預設為 <strong>realtime steady-state</strong>（已排除隨需求變動的 Rerun/Train 批次；可勾選加回對帳）。
   </div>
 
   <!-- ── Section 01 — 每 house 邊際成本 ── -->
@@ -397,46 +466,61 @@
 
   <div class="section-gap"></div>
 
-  <!-- ── Section 02 — 老闆宏觀總成本 ── -->
+  <!-- ── Section 02 — 專案艦隊總成本 ── -->
   <div class="section-label">
     <span class="section-num">02</span>
-    <span class="section-label-text">宏觀總成本 <em>Projected Monthly Total</em></span>
+    <span class="section-label-text">專案艦隊總成本 <em>Fleet Projected Total</em></span>
     <span class="section-label-line"></span>
   </div>
 
-  <div class="macro">
-    <div class="macro-head">Projected AWS Bill</div>
-    <div class="macro-sub">部署 <span id="mac-m">—</span> houses、平均上線 <span id="mac-n">—</span> 月後的預估月費</div>
-    <div class="macro-rows">
-      <div class="macro-row">
-        <div class="macro-rk">
-          <span class="rlabel">6 月帳單 base</span>
-          <span class="rsub">S3 $7,900 · EC2 $12,123 · MongoDB $6,879 · IoT $2,013 · MSK $1,281 · overhead ~$4,418</span>
-        </div>
-        <div class="macro-rv" id="mac-base">—</div>
+  <div class="grid">
+    <!-- Left: batch editor -->
+    <div class="panel">
+      <div class="panel-header">Deployment Batches <span class="hh">每批次 M houses · N 月</span></div>
+      <div class="panel-body">
+        <div id="batch-list"></div>
+        <button class="add-batch-btn" id="add-batch-btn">+ 新增批次部署</button>
+
+        <label class="rerun-toggle">
+          <input type="checkbox" id="rerun-toggle">
+          <span class="rt-box"></span>
+          <span class="rt-text">base 含 Rerun / Train 批次 <em>+$4,346</em>
+            <span class="rt-hint">補跑歷史資料 / 模型訓練（KEDA scale-to-zero），隨需求變動、非 realtime steady-state。預設排除以精準反映即時成本；勾選可對回實際帳單。</span>
+          </span>
+        </label>
       </div>
-      <div class="macro-row">
-        <div class="macro-rk">
-          <span class="rlabel"><span class="op">+</span>M houses 邊際成本</span>
-          <span class="rsub">來自 Section 01：<span class="hl" id="mac-margin-detail">—</span></span>
+    </div>
+
+    <!-- Right: fleet summary -->
+    <div class="panel">
+      <div class="panel-header">Fleet Summary <span class="hh">跨全部批次</span></div>
+      <div class="panel-body">
+        <div class="dev-readout" style="border-top:none;padding-top:0;margin-top:0">
+          <div class="dev-item"><span class="v" id="fl-houses">—</span><span class="k">新增 house 總數</span></div>
+          <div class="dev-item dc"><span class="v" id="fl-dc">—</span><span class="k">DC 相機 (含現況)</span></div>
+          <div class="dev-item pcv"><span class="v" id="fl-pcv">—</span><span class="k">PCV 相機 (含現況)</span></div>
+          <div class="dev-item"><span class="v" id="fl-lc">—</span><span class="k">Loadcell (含現況)</span></div>
         </div>
-        <div class="macro-rv" id="mac-margin">—</div>
-      </div>
-      <div class="macro-row grand">
-        <div class="macro-rk">
-          <span class="rlabel"><span class="op">=</span>專案總月費</span>
-          <span class="rmult" id="mac-mult">—</span>
-        </div>
-        <div class="macro-rv" id="mac-total">—</div>
+        <div class="fleet-tier-readout" id="fleet-tier-readout"></div>
       </div>
     </div>
   </div>
 
+  <div class="section-gap" style="height:22px"></div>
+
+  <!-- Dark macro card: dynamic breakdown -->
+  <div class="macro">
+    <div class="macro-head">Projected AWS Bill</div>
+    <div class="macro-sub" id="mac-sub">部署 <span id="mac-houses">—</span> houses（<span id="mac-batches">—</span> 批次）後的預估月費</div>
+    <div class="macro-rows" id="macro-rows"></div>
+  </div>
+
   <div class="footnote">
-    來源：<strong>0014-pipeline-cost-re-evaluation.md</strong>（§1 現況基準、§2 各項模型、§3 每台邊際）。
-    <span class="hl">MSK</span> 階梯：4× m7g.large（≤1,630 msg/s，$1,281）→ 4× xlarge（≤3,260，~$2,000）→ 4× 2xlarge（≤6,520，~$3,400）。
-    <span class="hl">MongoDB</span> 階梯：M50 base（≤4 TB，$6,900）→ M50 + Extended（≤8 TB，~$9,400）→ M80 / sharding（>8 TB，~$18,000）。
-    階梯項的「每 house」= (跨階後總價 − 現況) ÷ M，故隨 M 跨階跳動。
+    來源：<strong>0014-pipeline-cost-re-evaluation.md</strong>（§1 現況基準與 EC2 三分法、§2 各項模型、§3 每台邊際）。
+    <span class="hl">base</span> = 6 月帳單六項 $34,614，其中 EC2 $12,123 = realtime ~$5,100（隨相機成長）+ EKS 平台 ~$2,677（固定）+ Rerun/Train ~$4,346（隨需求變動）；預設 base 排除 Rerun/Train → <strong>$30,268</strong>。
+    <span class="hl">EC2 / S3 / IoT</span> 為線性、可逐批次歸屬（S3 隨各批次 N 累積）；<span class="hl">MSK / MongoDB</span> 為全艦隊共用階梯，依所有批次 house 總數計算一次跨階增量。
+    <span class="hl">MSK</span>：4× m7g.large（≤1,630 msg/s，$1,281）→ 4× xlarge（≤3,260，~$2,000）→ 4× 2xlarge（≤6,520，~$3,400）。
+    <span class="hl">MongoDB</span>：M50（≤4 TB，$6,900）→ M50 + Extended（≤8 TB，~$9,400）→ M80 / sharding（>8 TB，~$18,000）。
   </div>
 
 <script>
@@ -447,6 +531,12 @@ const BASE_DC = 406, BASE_PCV = 247, BASE_LC = 406;
 // ═══ 6 月帳單 base（0014 §1，2026-07-01 實際帳單校驗）═══
 const BASE_BILL = { s3: 7900, ec2: 12123, mongo: 6879, iot: 2013, msk: 1281, overhead: 4418 };
 const BASE_BILL_TOTAL = BASE_BILL.s3 + BASE_BILL.ec2 + BASE_BILL.mongo + BASE_BILL.iot + BASE_BILL.msk + BASE_BILL.overhead; // 34,614
+
+// ═══ EC2 $12,123 三分法（0014 §1「EC2 成本三分法」）═══
+// realtime（隨相機成長，是 §2/§3 模型對象）+ EKS 平台（固定底盤）+ Rerun/Train（隨需求變動、KEDA scale-to-zero）
+const EC2_REALTIME = 5100, EC2_EKS = 2677, EC2_RERUN = 4346; // 5100+2677+4346 = 12,123
+// realtime steady-state base = 六項帳單 − Rerun/Train（預設排除；Rerun/Train 為可勾選 add-on）
+const BASE_REALTIME = BASE_BILL_TOTAL - EC2_RERUN; // 30,268
 
 // ═══ EC2 realtime 邊際（$/相機/月，0014 §3 (A)）═══
 // DC = GPU $7.74 + CPU $0.57；PCV = GPU $1.29 + CPU $0.78
@@ -543,10 +633,42 @@ function calcMargin(M, N) {
   };
 }
 
-// ═══ Block 2 — 宏觀總成本 ═══
-function calcMacro(M, N) {
-  const m = calcMargin(M, N);
-  return { base: BASE_BILL_TOTAL, margin: m.marginTotal, total: BASE_BILL_TOTAL + m.marginTotal, m };
+// ═══ Block 2 — 單一批次的線性邊際（EC2 + S3 + IoT，可逐批次歸屬）═══
+// 階梯項（MSK / MongoDB）不在此處：它們是全艦隊共用、依 house 總數一次跨階，於 calcFleet 統一計算。
+function calcBatchLinear(M, N) {
+  const dcS3  = S3_DC_A  + S3_DC_B  * N;
+  const pcvS3 = S3_PCV_A + S3_PCV_B * N;
+  const ec2 = (EC2_DC + EC2_PCV) * M;
+  const s3  = (dcS3 + pcvS3)     * M;
+  const iot = IOT_PER_LC         * M;
+  const total = ec2 + s3 + iot;
+  return { M, N, ec2, s3, iot, total, perHouse: M > 0 ? total / M : (EC2_DC + EC2_PCV + dcS3 + pcvS3 + IOT_PER_LC) };
+}
+
+// ═══ Block 2 — 艦隊總成本 ═══
+//   base(realtime steady-state) + Σ 批次線性 + MSK 共用階梯增量 + MongoDB 共用階梯增量 [+ Rerun/Train]
+function calcFleet(batches, includeRerun) {
+  const linear = batches.map(b => calcBatchLinear(b.m, b.n));
+  const linearTotal = linear.reduce((s, x) => s + x.total, 0);
+
+  // 全艦隊 house 總數 → 一次跨階（MSK / MongoDB 為共用資源，不逐批次分攤）
+  const totalHouses = batches.reduce((s, b) => s + b.m, 0);
+  const dev0 = devices(0), devN = devices(totalHouses);
+  const mskBase = mskCost(dev0),   mskNow = mskCost(devN);
+  const mgBase  = mongoCost(dev0), mgNow  = mongoCost(devN);
+  const mskInc   = mskNow.cost - mskBase.cost;
+  const mongoInc = mgNow.cost  - mgBase.cost;
+
+  const rerun = includeRerun ? EC2_RERUN : 0;
+  const total = BASE_REALTIME + linearTotal + mskInc + mongoInc + rerun;
+
+  return {
+    batches, linear, linearTotal, totalHouses, devices: devN,
+    base: BASE_REALTIME, includeRerun, rerun,
+    msk:   { inc: mskInc,   tierName: mskNow.tierName, rate: mskNow.rate,   overflow: mskNow.overflow, upgraded: mskNow.cost > mskBase.cost },
+    mongo: { inc: mongoInc, tierName: mgNow.tierName,  fsUsed: mgNow.fsUsed, overflow: mgNow.overflow, upgraded: mgNow.cost > mgBase.cost },
+    total,
+  };
 }
 /* CALC-END */
 
@@ -617,19 +739,17 @@ function renderMargin(r) {
   document.getElementById('margin-rows').innerHTML = rows.join('');
 }
 
-function render() {
+// ═══════════ Block 1 — 每 house 邊際 explorer（獨立 M/N 滑桿）═══════════
+function renderBlock1() {
   const M = getM(), N = getN();
-  const macro = calcMacro(M, N);
-  const r = macro.m;
+  const r = calcMargin(M, N);
 
-  // device readout
   const d = devices(M);
   document.getElementById('dev-dc').textContent = num(d.dc);
   document.getElementById('dev-pcv').textContent = num(d.pcv);
   document.getElementById('dev-lc').textContent = num(d.lc);
   document.getElementById('dev-total').textContent = num(d.dc + d.pcv + d.lc);
 
-  // Block 1 hero
   document.getElementById('mg-perhouse').textContent = fmt2(r.perHouse);
   document.getElementById('mg-total').textContent = fmt0(r.marginTotal);
   document.getElementById('mg-sub-n').innerHTML =
@@ -638,35 +758,160 @@ function render() {
       : `${num(M)} houses × 平均上線 ${N} 月 · <span class="big">${fmt0(r.marginTotal)}</span> / 月`;
 
   renderMargin(r);
+}
 
-  // Block 2 macro
-  document.getElementById('mac-m').textContent = num(M);
-  document.getElementById('mac-n').textContent = N;
-  document.getElementById('mac-base').textContent = fmt0(macro.base);
-  document.getElementById('mac-margin').textContent = '+ ' + fmt0(macro.margin);
-  document.getElementById('mac-margin-detail').textContent =
-    `${num(M)} houses · N=${N} 月 · 每 house ~${fmt2(r.perHouse)}`;
-  document.getElementById('mac-total').textContent = fmt0(macro.total);
-  document.getElementById('mac-mult').textContent =
-    `vs 6 月 base ${(macro.total / macro.base).toFixed(2)}×`;
+// ═══════════ Block 2 — 專案艦隊（多批次部署，與 Block 1 完全解耦）═══════════
+let batches = [{ m: 500, n: 12 }];
+function getRerun() { return document.getElementById('rerun-toggle').checked; }
+
+function renderBatchList() {
+  const list = document.getElementById('batch-list');
+  list.innerHTML = '';
+  batches.forEach((b, i) => {
+    const row = document.createElement('div');
+    row.className = 'batch-row';
+    row.innerHTML =
+      `<span class="batch-num">#${i + 1}</span>` +
+      `<span class="batch-field"><span class="batch-field-label">M houses</span>` +
+      `<input type="number" class="batch-input" data-idx="${i}" data-field="m" min="0" max="1600" value="${b.m}"></span>` +
+      `<span class="batch-field"><span class="batch-field-label">N 月</span>` +
+      `<input type="number" class="batch-input" data-idx="${i}" data-field="n" min="0" max="36" value="${b.n}"></span>` +
+      `<span class="batch-subtotal"><span class="batch-subtotal-label">EC2+S3+IoT</span>` +
+      `<span class="batch-subtotal-val" id="batch-sub-${i}">—</span></span>` +
+      `<button class="batch-delete" data-idx="${i}"${batches.length === 1 ? ' disabled' : ''}>✕</button>`;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.batch-input').forEach(inp => {
+    inp.addEventListener('input', function () {
+      const idx = parseInt(this.dataset.idx, 10), field = this.dataset.field;
+      let v = parseInt(this.value, 10);
+      if (isNaN(v)) return;
+      v = Math.max(parseInt(this.min, 10), Math.min(parseInt(this.max, 10), v));
+      batches[idx][field] = v;
+      renderFleet();
+    });
+  });
+  list.querySelectorAll('.batch-delete').forEach(btn => {
+    btn.addEventListener('click', function () {
+      if (batches.length === 1) return;
+      batches.splice(parseInt(this.dataset.idx, 10), 1);
+      renderBatchList(); // rebuild to re-index rows
+    });
+  });
+
+  renderFleet();
+}
+
+function macroTierBadge(t) {
+  const cls = t.overflow ? 'over' : (t.upgraded ? 'upgrade' : 'stable');
+  return `<span class="tier-badge ${cls}">${t.tierName}</span>`;
+}
+
+function macroRow(cls, op, label, sub, value) {
+  return `<div class="macro-row ${cls || ''}">
+    <div class="macro-rk">
+      <span class="rlabel">${op ? `<span class="op">${op}</span>` : ''}${label}</span>
+      ${sub ? `<span class="rsub">${sub}</span>` : ''}
+    </div>
+    <div class="macro-rv">${value}</div>
+  </div>`;
+}
+
+function renderFleet() {
+  const f = calcFleet(batches, getRerun());
+
+  // fleet summary readout
+  document.getElementById('fl-houses').textContent = num(f.totalHouses);
+  document.getElementById('fl-dc').textContent = num(f.devices.dc);
+  document.getElementById('fl-pcv').textContent = num(f.devices.pcv);
+  document.getElementById('fl-lc').textContent = num(f.devices.lc);
+
+  // per-batch linear subtotals
+  f.linear.forEach((x, i) => {
+    const el = document.getElementById('batch-sub-' + i);
+    if (el) el.textContent = fmt0(x.total);
+  });
+
+  // shared-tier readout (right panel)
+  const stepV = inc => inc > 0 ? '增量 +' + fmt0(inc) : '增量 $0（未跨階）';
+  document.getElementById('fleet-tier-readout').innerHTML =
+    `<div class="ftr-item"><span class="ftr-k">MSK ${macroTierBadge(f.msk)}</span>` +
+    `<span class="ftr-v">${f.msk.rate.toFixed(0)} msg/s · ${stepV(f.msk.inc)}</span></div>` +
+    `<div class="ftr-item"><span class="ftr-k">MongoDB ${macroTierBadge(f.mongo)}</span>` +
+    `<span class="ftr-v">fsUsed ${(f.mongo.fsUsed / 1000).toFixed(2)} TB · ${stepV(f.mongo.inc)}</span></div>`;
+
+  // dark macro card
+  document.getElementById('mac-houses').textContent = num(f.totalHouses);
+  document.getElementById('mac-batches').textContent = num(batches.length);
+
+  const rows = [];
+  // base (realtime steady-state)
+  rows.push(macroRow('', '',
+    `6 月帳單 base <span style="font-size:0.68rem;color:#8fa396;font-weight:500">realtime steady-state</span>`,
+    `S3 $7,900 · EC2 realtime $5,100 · MongoDB $6,879 · IoT $2,013 · MSK $1,281 · EKS+overhead ~$7,095`,
+    fmt0(f.base)));
+
+  // each batch — linear items only (per-batch attributable)
+  f.linear.forEach((x, i) => {
+    rows.push(macroRow('', '+',
+      `批次部署 #${i + 1} <span class="cd">${num(x.M)} houses · N=${x.N}月</span>`,
+      `EC2 <span class="cd">${fmt0(x.ec2)}</span> · S3 <span class="cd">${fmt0(x.s3)}</span> · IoT <span class="cd">${fmt0(x.iot)}</span>`,
+      '+ ' + fmt0(x.total)));
+  });
+
+  // MSK shared step (fleet-wide)
+  rows.push(macroRow(f.msk.inc > 0 ? 'step' : 'step muted', '+',
+    `MSK 共用階梯增量 ${macroTierBadge(f.msk)}`,
+    `全艦隊 ${f.msk.rate.toFixed(0)} msg/s · ${f.msk.inc > 0 ? '<span class="tier">已跨階升級</span>' : '未跨階'}`,
+    (f.msk.inc > 0 ? '+ ' : '') + fmt0(f.msk.inc)));
+
+  // MongoDB shared step (fleet-wide)
+  rows.push(macroRow(f.mongo.inc > 0 ? 'step' : 'step muted', '+',
+    `MongoDB 共用階梯增量 ${macroTierBadge(f.mongo)}`,
+    `全艦隊 fsUsed ${(f.mongo.fsUsed / 1000).toFixed(2)} TB · ${f.mongo.inc > 0 ? '<span class="tier">' + (f.mongo.overflow ? '需 M80 / sharding' : '已開 Extended') + '</span>' : '未跨階'}`,
+    (f.mongo.inc > 0 ? '+ ' : '') + fmt0(f.mongo.inc)));
+
+  // Rerun / Train (optional add-on)
+  if (f.includeRerun) {
+    rows.push(macroRow('rerun', '+',
+      `Rerun / Train 批次 <span style="font-size:0.68rem;font-weight:500">隨需求變動</span>`,
+      `補跑歷史資料 / 模型訓練（KEDA scale-to-zero）· 非 realtime steady-state`,
+      '+ ' + fmt0(f.rerun)));
+  }
+
+  // grand total
+  rows.push(macroRow('grand', '=',
+    `專案總月費`,
+    `vs base ${(f.total / f.base).toFixed(2)}× · ${num(batches.length)} 批次 · ${num(f.totalHouses)} houses${f.includeRerun ? ' · 含 Rerun/Train' : ' · realtime only'}`,
+    fmt0(f.total)));
+
+  document.getElementById('macro-rows').innerHTML = rows.join('');
 }
 
 function linkSlider(sliderId, inputId, min, max) {
   const slider = document.getElementById(sliderId);
   const input = document.getElementById(inputId);
-  slider.addEventListener('input', () => { input.value = slider.value; render(); });
+  slider.addEventListener('input', () => { input.value = slider.value; renderBlock1(); });
   input.addEventListener('input', () => {
     let v = parseInt(input.value, 10);
     if (isNaN(v)) return;
     v = Math.max(min, Math.min(max, v));
-    input.value = v; slider.value = v; render();
+    input.value = v; slider.value = v; renderBlock1();
   });
 }
 
 linkSlider('m-slider', 'm-input', 0, 1600);
 linkSlider('n-slider', 'n-input', 0, 36);
 
-render();
+document.getElementById('add-batch-btn').addEventListener('click', () => {
+  batches.push({ m: 100, n: 12 });
+  renderBatchList();
+});
+document.getElementById('rerun-toggle').addEventListener('change', renderFleet);
+
+renderBlock1();
+renderBatchList();
 </script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const m = html.match(/\/\* CALC-START \*\/([\s\S]*?)\/\* CALC-END \*\//);
 assert(m, 'CALC-START/CALC-END markers not found in forecast.html');
 
 const factory = new Function(
-  m[1] + '\nreturn { devices, mskCost, mongoCost, mongoFsUsed, calcMargin, calcMacro, BASE_BILL_TOTAL };'
+  m[1] + '\nreturn { devices, mskCost, mongoCost, mongoFsUsed, calcMargin, calcBatchLinear, calcFleet, BASE_BILL_TOTAL, BASE_REALTIME, EC2_REALTIME, EC2_EKS, EC2_RERUN };'
 );
 const api = factory();
 
@@ -89,12 +89,56 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
   assert.equal(over.mongo.overflow, true, 'M=587 sets MongoDB overflow');
 }
 
-// ── calcMacro(500, 12) — base + margin = total ────────────────
+// ── EC2 three-way split reconciles to the $12,123 bill line ───
 {
-  const mac = api.calcMacro(500, 12);
-  assert.equal(mac.base, 34614, 'macro base');
-  approx(mac.margin, 19944, 2, 'macro margin = calcMargin total');
-  approx(mac.total, 54558, 2, 'macro grand total = base + margin');
+  assert.equal(api.EC2_REALTIME + api.EC2_EKS + api.EC2_RERUN, 12123, 'EC2 split sums to $12,123');
+  assert.equal(api.BASE_REALTIME, 30268, 'realtime base = $34,614 − Rerun/Train $4,346');
+}
+
+// ── calcBatchLinear(500, 12) — per-batch linear items ─────────
+{
+  const b = api.calcBatchLinear(500, 12);
+  approx(b.ec2, 5200, 1, 'batch EC2 = 500 × $10.4');
+  approx(b.s3, 9045, 1, 'batch S3 at N=12');
+  approx(b.iot, 2480, 1, 'batch IoT = 500 × $4.96');
+  approx(b.total, 16725, 2, 'batch linear total');
+}
+
+// ── calcFleet: single batch, rerun excluded (default) ─────────
+{
+  const f = api.calcFleet([{ m: 500, n: 12 }], false);
+  assert.equal(f.base, 30268, 'fleet base = realtime steady-state');
+  approx(f.linearTotal, 16725, 2, 'fleet linear total = Σ batch linear');
+  assert.equal(f.msk.inc, 719, 'fleet MSK step increment (+500 crosses tier)');
+  assert.equal(f.mongo.inc, 2500, 'fleet MongoDB step increment (+500 opens Extended)');
+  assert.equal(f.rerun, 0, 'rerun excluded by default');
+  // 30268 + 16725 + 719 + 2500 = 50212
+  approx(f.total, 50212, 2, 'fleet total (realtime base, no rerun)');
+}
+
+// ── calcFleet: rerun toggle adds $4,346 back ──────────────────
+{
+  const f = api.calcFleet([{ m: 500, n: 12 }], true);
+  assert.equal(f.rerun, 4346, 'rerun add-on = $4,346');
+  approx(f.total, 54558, 2, 'fleet total with rerun = matches full-bill projection');
+}
+
+// ── calcFleet: stepped items are fleet-wide, not per-batch ────
+// two batches summing to 500 houses must give the same steps as one 500-house batch
+{
+  const one = api.calcFleet([{ m: 500, n: 12 }], false);
+  const two = api.calcFleet([{ m: 250, n: 12 }, { m: 250, n: 12 }], false);
+  assert.equal(two.msk.inc, one.msk.inc, 'MSK step depends on fleet house total, not batch split');
+  assert.equal(two.mongo.inc, one.mongo.inc, 'MongoDB step depends on fleet house total, not batch split');
+  approx(two.linearTotal, one.linearTotal, 2, 'linear total additive across batch split');
+  approx(two.total, one.total, 2, 'fleet total invariant to batch split (same houses/N)');
+}
+
+// ── calcFleet: batches with different N accumulate S3 independently
+{
+  const f = api.calcFleet([{ m: 100, n: 0 }, { m: 100, n: 24 }], false);
+  // batch B (N=24) S3 must exceed batch A (N=0) S3
+  assert(f.linear[1].s3 > f.linear[0].s3, 'higher-N batch accumulates more S3');
 }
 
 // ── M=0 degenerate: linear marginal rate, no stepped increment ─
