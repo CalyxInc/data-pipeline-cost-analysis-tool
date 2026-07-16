@@ -6,7 +6,7 @@ const m = html.match(/\/\* CALC-START \*\/([\s\S]*?)\/\* CALC-END \*\//);
 assert(m, 'CALC-START/CALC-END markers not found in forecast.html');
 
 const factory = new Function(
-  m[1] + '\nreturn { devices, mskCost, mongoCost, mongoFsUsed, calcMargin, calcBatchLinear, calcFleet, BASE_BILL_TOTAL, BASE_REALTIME, EC2_REALTIME, EC2_EKS, EC2_RERUN };'
+  m[1] + '\nreturn { devices, mskCost, mongoCost, mongoFsUsed, calcMargin, calcBatchLinear, calcFleet, calcTimelineSeries, baseBillForMonth, S3_BASE_GROWTH, BASE_BILL_TOTAL, BASE_REALTIME, EC2_REALTIME, EC2_EKS, EC2_RERUN };'
 );
 const api = factory();
 
@@ -93,6 +93,47 @@ assert.deepEqual(api.devices(0), { dc: 406, pcv: 247, lc: 406 }, 'baseline devic
 {
   assert.equal(api.EC2_REALTIME + api.EC2_EKS + api.EC2_RERUN, 12123, 'EC2 split sums to $12,123');
   assert.equal(api.BASE_REALTIME, 30268, 'realtime base = $34,614 − Rerun/Train $4,346');
+}
+
+// ── base-month accretion: only S3 grows (~$593/mo), 0014 §4 ───
+{
+  approx(api.S3_BASE_GROWTH, 593.1, 0.1, 'S3 base growth = 406×1.4 + 247×0.10');
+  const june = api.baseBillForMonth(0);
+  assert.equal(june.s3, 7900, 'June base S3 = $7,900 (anchor)');
+  assert.equal(june.realtime, 30268, 'June base realtime unchanged');
+  assert.equal(june.billTotal, 34614, 'June base full bill unchanged');
+  assert.equal(june.s3Growth, 0, 'June growth = 0');
+  const oct = api.baseBillForMonth(4);      // 2026-10 = June + 4
+  approx(oct.s3, 10272, 1, 'Oct base S3 = 7900 + 4×593.1');
+  approx(oct.realtime, 32640, 1, 'Oct base realtime = 30268 + growth');
+  approx(oct.s3Growth, 2372, 1, 'Oct growth = 4 months');
+}
+
+// ── calcTimelineSeries: windowed by absolute month offset ─────
+{
+  const s = api.calcTimelineSeries([{ m: 500, month: 3 }], 1, 13); // 2026/07 → 2027/07
+  assert.equal(s.length, 13, 'window [1,13] → 13 monthly points');
+  assert.equal(s[0].k, 1, 'first point k=1 (2026/07)');
+  assert.equal(s[12].k, 13, 'last point k=13 (2027/07)');
+  // base slopes up with existing-fleet S3 accretion
+  approx(s[12].base - s[0].base, 12 * 593.1, 1, 'timeline base slope = 12 × $593.1');
+  // deploy at k=3 online from k=3 onward
+  assert.equal(s[1].houses, 0, 'k=2: deploy (k=3) not yet online');
+  assert.equal(s[2].houses, 500, 'k=3: deploy online (500 houses)');
+  // a custom window respects arbitrary start/end
+  const w = api.calcTimelineSeries([{ m: 500, month: 3 }], 6, 30); // 2026/12 → 2028/12
+  assert.equal(w.length, 25, 'window [6,30] → 25 points');
+  assert.equal(w[0].k, 6, 'custom window start k=6 (2026/12)');
+  assert(w[0].houses === 500, 'deploy before window start counts as already-online');
+}
+
+// ── calcFleet honours baseMonth (default 0 = June) ────────────
+{
+  const jun = api.calcFleet([{ m: 500, n: 12 }], false);         // 2-arg → baseMonth 0
+  const oct = api.calcFleet([{ m: 500, n: 12 }], false, 4);
+  assert.equal(jun.base, 30268, 'default baseMonth keeps June base');
+  approx(oct.base, 32640, 1, 'baseMonth=4 grows base by S3 accretion');
+  approx(oct.total - jun.total, 2372, 1, 'fleet total shifts only by S3 growth');
 }
 
 // ── calcBatchLinear(500, 12) — per-batch linear items ─────────

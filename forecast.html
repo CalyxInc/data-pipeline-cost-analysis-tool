@@ -290,6 +290,40 @@
       padding: 28px 30px 26px;
       color: #e8ede9;
     }
+    .macro-basepick {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin: 16px 0 6px; padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .macro-basepick label { font-size: 0.7rem; color: #8fa396; letter-spacing: 0.04em; font-weight: 600; }
+    .macro-basepick select {
+      background: rgba(255,255,255,0.06); color: #f2f6f3;
+      border: 1px solid rgba(255,255,255,0.16); border-radius: 8px;
+      padding: 6px 10px; font-size: 0.82rem; font-family: var(--mono);
+      font-variant-numeric: tabular-nums; cursor: pointer;
+    }
+    .macro-basepick select:focus { outline: none; border-color: #6cc79a; }
+    .macro-basepick .bp-note { font-size: 0.64rem; color: #8fa396; }
+    .macro-basepick .bp-note .hl { color: #6cc79a; font-weight: 600; }
+    /* ── Timeline window selector (Section 03) ── */
+    .tl-window {
+      display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 18px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tl-window-field { display: flex; flex-direction: column; gap: 5px; }
+    .tl-window-field label {
+      font-size: 0.6rem; color: var(--muted); letter-spacing: 0.05em;
+      font-weight: 600; text-transform: uppercase;
+    }
+    .tl-window-field select {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 10px; font-size: 0.85rem; font-family: var(--mono);
+      font-variant-numeric: tabular-nums; cursor: pointer; min-width: 110px;
+    }
+    .tl-window-field select:focus { outline: none; border-color: var(--green); }
+    .tl-window-arrow { color: var(--muted); font-size: 1rem; padding-bottom: 8px; }
     .macro-rows { display: flex; flex-direction: column; }
     .macro-row {
       display: flex; align-items: center; justify-content: space-between;
@@ -552,6 +586,11 @@
   <div class="macro">
     <div class="macro-head">Projected AWS Bill</div>
     <div class="macro-sub" id="mac-sub">部署 <span id="mac-houses">—</span> houses（<span id="mac-batches">—</span> 批次）後的預估月費</div>
+    <div class="macro-basepick">
+      <label for="base-month">base 帳單月份</label>
+      <select id="base-month"></select>
+      <span class="bp-note" id="bp-note"></span>
+    </div>
     <div class="macro-rows" id="macro-rows"></div>
   </div>
 
@@ -569,18 +608,23 @@
     <div class="panel">
       <div class="panel-header">Deployment Schedule <span class="hh">M houses · 部署月份</span></div>
       <div class="panel-body">
+        <div class="tl-window">
+          <span class="tl-window-field"><label for="tl-start">起始月份 (base)</label><select id="tl-start"></select></span>
+          <span class="tl-window-arrow">→</span>
+          <span class="tl-window-field"><label for="tl-end">終止月份</label><select id="tl-end"></select></span>
+        </div>
         <div id="deploy-list"></div>
         <button class="add-batch-btn" id="add-deploy-btn">+ 新增部署</button>
         <div class="param-hint" style="margin-top:16px;margin-bottom:0">
-          時間軸固定 <strong>2026/7 → 2027/7</strong>（一年）。每筆部署選定 <strong>M houses</strong> 與 <strong>部署月份</strong>，
-          上線月數 = 該月至終止時間，S3 隨之逐月累積；跨 MSK / MongoDB 階梯時線條會出現階跳。
+          時間軸可選 <strong>起始 / 終止月份</strong>（2026/06 – 2028/12）。<strong>起始 base</strong> = 現況艦隊 S3 累積到起始月的帳單；
+          每筆部署選定 <strong>M houses</strong> 與 <strong>部署月份</strong>，上線月數 = 該月至終止時間，S3 隨之逐月累積；跨 MSK / MongoDB 階梯時線條會出現階跳。
         </div>
       </div>
     </div>
 
     <!-- Right: timeline chart -->
     <div class="panel">
-      <div class="panel-header">專案總月費逐月推移 <span class="hh">2026/7 – 2027/7 · USD / 月</span></div>
+      <div class="panel-header">專案總月費逐月推移 <span class="hh" id="tl-range-label">2026/07 – 2027/07 · USD / 月</span></div>
       <div class="panel-body">
         <div class="chart-wrap" id="tl-chart-wrap">
           <div id="tl-chart"></div>
@@ -621,6 +665,24 @@ const EC2_DC = 8.3, EC2_PCV = 2.1;
 // ═══ S3 邊際 f(N) = 桶A基底 + 桶B累積·N（$/相機/月，0014 §2/§3 (A′)）═══
 const S3_DC_A = 0.04, S3_DC_B = 1.4;    // DC：1.7 + 68·N GB
 const S3_PCV_A = 0.05, S3_PCV_B = 0.10; // PCV：2.3 + 4.5·N GB
+
+// ═══ 現況艦隊 base 的 S3 隨時間累積速率（0014 §4）═══
+// S3 是唯一「每台成本隨時間長」的項；現況 406 DC + 247 PCV 每月新增桶 B：
+const S3_BASE_GROWTH = BASE_DC * S3_DC_B + BASE_PCV * S3_PCV_B; // 406×1.4 + 247×0.10 = 593.1 $/月
+
+// 選定 base 月份（k = 距 2026-06 錨點的月數，k=0 → 6 月實際帳單）的 base 各項。
+// 只有 S3 隨月份長大；其餘皆穩態。MongoDB 的時間累積刻意不建模（階梯項，
+// 0014 指出開 Extended 幾乎不增費，18 個月視窗內視為持平即可）。
+function baseBillForMonth(k) {
+  const s3Growth = S3_BASE_GROWTH * k;
+  return {
+    k,
+    s3:        BASE_BILL.s3 + s3Growth,
+    s3Growth,
+    realtime:  BASE_REALTIME + s3Growth,
+    billTotal: BASE_BILL_TOTAL + s3Growth,
+  };
+}
 
 // ═══ AWS IoT Core（$/loadcell/月，0014 §3）═══
 const IOT_PER_LC = 4.96;
@@ -723,7 +785,7 @@ function calcBatchLinear(M, N) {
 
 // ═══ Block 2 — 艦隊總成本 ═══
 //   base(realtime steady-state) + Σ 批次線性 + MSK 共用階梯增量 + MongoDB 共用階梯增量 [+ Rerun/Train]
-function calcFleet(batches, includeRerun) {
+function calcFleet(batches, includeRerun, baseMonth = 0) {
   const linear = batches.map(b => calcBatchLinear(b.m, b.n));
   const linearTotal = linear.reduce((s, x) => s + x.total, 0);
 
@@ -736,31 +798,33 @@ function calcFleet(batches, includeRerun) {
   const mongoInc = mgNow.cost  - mgBase.cost;
 
   const rerun = includeRerun ? EC2_RERUN : 0;
-  const total = BASE_REALTIME + linearTotal + mskInc + mongoInc + rerun;
+  const bb = baseBillForMonth(baseMonth);
+  const total = bb.realtime + linearTotal + mskInc + mongoInc + rerun;
 
   return {
     batches, linear, linearTotal, totalHouses, devices: devN,
-    base: BASE_REALTIME, includeRerun, rerun,
+    base: bb.realtime, baseMonth, baseS3: bb.s3, s3Growth: bb.s3Growth, includeRerun, rerun,
     msk:   { inc: mskInc,   tierName: mskNow.tierName, rate: mskNow.rate,   overflow: mskNow.overflow, upgraded: mskNow.cost > mskBase.cost },
     mongo: { inc: mongoInc, tierName: mgNow.tierName,  fsUsed: mgNow.fsUsed, overflow: mgNow.overflow, upgraded: mgNow.cost > mgBase.cost },
     total,
   };
 }
 
-// ═══ Block 3 — 逐月成本推移（2026/7 → 2027/7，13 個月點）═══
-//   固定時間軸；每筆部署 = { m: houses, month: 0..TL_SPAN } 在該月上線。
-//   月 t 的總費 = base + Σ 已上線批次線性(N = t − 部署月) + 全艦隊 MSK/MongoDB 階梯增量(依累積 house 總數)。
-const TL_SPAN = 12; // 2026/7 (index 0) → 2027/7 (index 12) = 13 點
-function calcTimelineSeries(deploys) {
+// ═══ Block 3 — 逐月成本推移（可選起始 / 終止月份）═══
+//   以 2026-06 錨點的絕對月偏移 k 建模（k=0 → 2026/06）；視窗 [kStart, kEnd]。
+//   每筆部署 = { m: houses, month: 絕對 k } 在該月上線。
+//   月 k 總費 = baseBillForMonth(k)（現況艦隊老化到 k）+ Σ 已上線批次線性(N = k − 部署月)
+//            + 全艦隊 MSK/MongoDB 階梯增量(依累積 house 總數)。
+function calcTimelineSeries(deploys, kStart, kEnd) {
   const dev0 = devices(0);
   const mskBase = mskCost(dev0).cost, mgBase = mongoCost(dev0).cost;
   const series = [];
-  for (let t = 0; t <= TL_SPAN; t++) {
+  for (let k = kStart; k <= kEnd; k++) {
     let linear = 0, houses = 0;
     const active = [];
     deploys.forEach(dp => {
-      if (dp.month <= t) {
-        const N = t - dp.month;
+      if (dp.month <= k) {
+        const N = k - dp.month;
         const b = calcBatchLinear(dp.m, N);
         linear += b.total; houses += dp.m;
         active.push({ m: dp.m, month: dp.month, N, cost: b.total });
@@ -769,8 +833,9 @@ function calcTimelineSeries(deploys) {
     const devN = devices(houses);
     const mskT = mskCost(devN), mgT = mongoCost(devN);
     const mskInc = mskT.cost - mskBase, mgInc = mgT.cost - mgBase;
-    const total = BASE_REALTIME + linear + mskInc + mgInc;
-    series.push({ t, total, base: BASE_REALTIME, linear, mskInc, mgInc, houses, active,
+    const base = baseBillForMonth(k).realtime; // 現況艦隊 S3 累積到第 k 月
+    const total = base + linear + mskInc + mgInc;
+    series.push({ k, total, base, linear, mskInc, mgInc, houses, active,
                   mskTier: mskT.tierName, mgTier: mgT.tierName });
   }
   return series;
@@ -867,7 +932,21 @@ function renderBlock1() {
 
 // ═══════════ Block 2 — 專案艦隊（多批次部署，與 Block 1 完全解耦）═══════════
 let batches = [{ m: 500, n: 12 }];
+let baseMonth = 0;              // k = 距 2026-06 錨點的月數（0 = 6 月實際帳單）
+const BASE_MONTH_MAX = 18;     // 2026/06 → 2027/12
 function getRerun() { return document.getElementById('rerun-toggle').checked; }
+
+function baseMonthLabel(k) {
+  const t = 2026 * 12 + 5 + k; // 2026-06 = 0-based 月索引 5
+  return `${Math.floor(t / 12)}/${String((t % 12) + 1).padStart(2, '0')}`;
+}
+function fillBaseMonthOptions() {
+  let out = '';
+  for (let k = 0; k <= BASE_MONTH_MAX; k++)
+    out += `<option value="${k}"${k === baseMonth ? ' selected' : ''}>` +
+           `${baseMonthLabel(k)} ${k === 0 ? '（實際帳單）' : '（推估）'}</option>`;
+  document.getElementById('base-month').innerHTML = out;
+}
 
 function renderBatchList() {
   const list = document.getElementById('batch-list');
@@ -924,7 +1003,12 @@ function macroRow(cls, op, label, sub, value) {
 }
 
 function renderFleet() {
-  const f = calcFleet(batches, getRerun());
+  const f = calcFleet(batches, getRerun(), baseMonth);
+
+  // base-month picker note
+  document.getElementById('bp-note').innerHTML = f.s3Growth > 0
+    ? `S3 <span class="hl">+${fmt0(f.s3Growth)}</span> · base <span class="hl">${fmt0(f.base)}</span>（現況艦隊累積 ${f.baseMonth} 個月）`
+    : `2026-06 實際帳單錨點`;
 
   // fleet summary readout
   document.getElementById('fl-houses').textContent = num(f.totalHouses);
@@ -951,10 +1035,13 @@ function renderFleet() {
   document.getElementById('mac-batches').textContent = num(batches.length);
 
   const rows = [];
-  // base (realtime steady-state)
+  // base (realtime steady-state) — S3 隨選定月份累積，其餘持平
+  const growthNote = f.s3Growth > 0
+    ? ` · <span style="color:#e0b15e">S3 +${fmt0(f.s3Growth)}（累積 ${f.baseMonth} 個月）</span>`
+    : '';
   rows.push(macroRow('', '',
-    `6 月帳單 base <span style="font-size:0.68rem;color:#8fa396;font-weight:500">realtime steady-state</span>`,
-    `S3 $7,900 · EC2 realtime $5,100 · MongoDB $6,879 · IoT $2,013 · MSK $1,281 · EKS+overhead ~$7,095`,
+    `${baseMonthLabel(f.baseMonth)} 帳單 base <span style="font-size:0.68rem;color:#8fa396;font-weight:500">realtime steady-state</span>`,
+    `S3 ${fmt0(f.baseS3)} · EC2 realtime $5,100 · MongoDB $6,879 · IoT $2,013 · MSK $1,281 · EKS+overhead ~$7,095${growthNote}`,
     fmt0(f.base)));
 
   // each batch — linear items only (per-batch attributable)
@@ -1014,20 +1101,33 @@ document.getElementById('add-batch-btn').addEventListener('click', () => {
   renderBatchList();
 });
 document.getElementById('rerun-toggle').addEventListener('change', renderFleet);
+fillBaseMonthOptions();
+document.getElementById('base-month').addEventListener('change', e => {
+  baseMonth = parseInt(e.target.value, 10) || 0;
+  renderFleet();
+});
 
-// ═══════════ Block 3 — 逐月成本推移（固定 2026/7 → 2027/7 時間軸）═══════════
-let deploys = [{ m: 500, month: 2 }];
+// ═══════════ Block 3 — 逐月成本推移（可選起始 / 終止月份）═══════════
+// deploys.month 與 tlStart/tlEnd 皆為距 2026-06 的絕對月偏移（k）。
+let deploys = [{ m: 500, month: 3 }]; // 2026/09
+let tlStart = 1, tlEnd = 13;          // 2026/07 → 2027/07
+const TL_MONTH_MAX = 30;              // 至 2028/12
+function tlSpan() { return tlEnd - tlStart; }
 
-// 時間軸月份標籤：index 0 = 2026/7
-function monthLabel(i) {
-  const total = 2026 * 12 + 6 + i;        // July 2026 = month-index 6 (0-based)
-  return `${Math.floor(total / 12)}/${(total % 12) + 1}`;
-}
-function monthOptions(sel) {
+function deployMonthOptions(sel) {
   let out = '';
-  for (let i = 0; i <= TL_SPAN; i++)
-    out += `<option value="${i}"${i === sel ? ' selected' : ''}>${monthLabel(i)}</option>`;
+  for (let k = 0; k <= TL_MONTH_MAX; k++)
+    out += `<option value="${k}"${k === sel ? ' selected' : ''}>${baseMonthLabel(k)}</option>`;
   return out;
+}
+function fillWindowSelects() {
+  let so = '', eo = '';
+  for (let k = 0; k <= TL_MONTH_MAX; k++) {
+    so += `<option value="${k}"${k === tlStart ? ' selected' : ''}>${baseMonthLabel(k)}</option>`;
+    eo += `<option value="${k}"${k === tlEnd ? ' selected' : ''}>${baseMonthLabel(k)}</option>`;
+  }
+  document.getElementById('tl-start').innerHTML = so;
+  document.getElementById('tl-end').innerHTML = eo;
 }
 const fmtK = v => {
   const r = Math.round(v);
@@ -1040,18 +1140,19 @@ TL.pw = TL.w - TL.ml - TL.mr;
 TL.ph = TL.h - TL.mt - TL.mb;
 let tlState = null; // { series, yMin, yMax }
 
-function tlX(i) { return TL.ml + (i / TL_SPAN) * TL.pw; }
+function tlX(p) { return TL.ml + (p / Math.max(1, tlSpan())) * TL.pw; }
 function tlY(v) { const { yMin, yMax } = tlState; return TL.mt + (1 - (v - yMin) / (yMax - yMin)) * TL.ph; }
 
 function renderTimelineChart() {
-  const series = calcTimelineSeries(deploys);
+  const series = calcTimelineSeries(deploys, tlStart, tlEnd);
+  const span = tlSpan();
   const vals = series.map(s => s.total);
   const rawMin = Math.min(...vals), rawMax = Math.max(...vals);
   const pad = Math.max(1000, (rawMax - rawMin) * 0.18);
   let yMin = Math.max(0, Math.floor((rawMin - pad) / 1000) * 1000);
   let yMax = Math.ceil((rawMax + pad) / 1000) * 1000;
   if (yMax === yMin) yMax = yMin + 1000;
-  tlState = { series, yMin, yMax };
+  tlState = { series, yMin, yMax, span };
 
   // gridlines (5 bands)
   const GRID = 4;
@@ -1063,38 +1164,40 @@ function renderTimelineChart() {
             `<text x="${TL.ml - 8}" y="${y + 3}" text-anchor="end">${fmtK(v)}</text>`;
   }
 
-  // deployment months set (for x-tick emphasis)
+  // deployment months set (absolute k, for x-tick emphasis)
   const depMonths = new Set(deploys.map(d => d.month));
 
-  // x-axis ticks (label every 2nd + first/last + deployment months)
+  // x-axis ticks (label every 2nd position + first/last + deployment months)
   let xax = '';
-  for (let i = 0; i <= TL_SPAN; i++) {
-    const show = i % 2 === 0 || i === TL_SPAN || depMonths.has(i);
+  for (let p = 0; p <= span; p++) {
+    const k = series[p].k, isDep = depMonths.has(k);
+    const show = p % 2 === 0 || p === span || isDep;
     if (!show) continue;
-    xax += `<text class="${depMonths.has(i) ? 'dep' : ''}" x="${tlX(i)}" y="${TL.h - TL.mb + 16}" text-anchor="middle">${monthLabel(i)}</text>`;
+    xax += `<text class="${isDep ? 'dep' : ''}" x="${tlX(p)}" y="${TL.h - TL.mb + 16}" text-anchor="middle">${baseMonthLabel(k)}</text>`;
   }
 
-  // deployment guide lines + labels
+  // deployment guide lines + labels (only those inside the window)
   let deplines = '';
   deploys.forEach(dp => {
-    if (dp.month < 0 || dp.month > TL_SPAN) return;
-    const x = tlX(dp.month);
-    const pt = series[dp.month];
+    const p = dp.month - tlStart;
+    if (p < 0 || p > span) return;
+    const x = tlX(p);
+    const pt = series[p];
     deplines += `<line class="tl-dep-line" x1="${x}" y1="${TL.mt}" x2="${x}" y2="${TL.mt + TL.ph}"/>`;
     deplines += `<text class="dep" x="${x}" y="${TL.mt - 6}" text-anchor="middle" style="fill:var(--amber);font-family:var(--mono);font-size:9px;font-weight:700">+${num(dp.m)}</text>`;
     deplines += `<circle class="tl-dep-dot" cx="${x}" cy="${tlY(pt.total)}" r="3.5"/>`;
   });
 
-  // line + area path
+  // line + area path (by position index)
   let line = '', area = '';
-  series.forEach((s, i) => {
-    const x = tlX(i), y = tlY(s.total);
-    line += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  series.forEach((s, p) => {
+    const x = tlX(p), y = tlY(s.total);
+    line += (p === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
   });
   const baseY = tlY(yMin);
   area = `M${tlX(0).toFixed(1)},${baseY.toFixed(1)} ` +
-         series.map((s, i) => 'L' + tlX(i).toFixed(1) + ',' + tlY(s.total).toFixed(1)).join(' ') +
-         ` L${tlX(TL_SPAN).toFixed(1)},${baseY.toFixed(1)} Z`;
+         series.map((s, p) => 'L' + tlX(p).toFixed(1) + ',' + tlY(s.total).toFixed(1)).join(' ') +
+         ` L${tlX(span).toFixed(1)},${baseY.toFixed(1)} Z`;
 
   const svg =
     `<svg viewBox="0 0 ${TL.w} ${TL.h}" role="img" aria-label="專案總月費逐月推移">
@@ -1111,14 +1214,15 @@ function renderTimelineChart() {
   attachTimelineHover();
 
   // summary readout
-  const start = series[0], end = series[TL_SPAN];
+  const start = series[0], end = series[span];
   const totalHouses = deploys.reduce((s, d) => s + d.m, 0);
   const growth = end.total - start.total;
   document.getElementById('tl-readout').innerHTML =
-    `<div class="dev-item"><span class="v">${fmt0(start.total)}</span><span class="k">起始月費 (2026/7)</span></div>` +
-    `<div class="dev-item dc"><span class="v">${fmt0(end.total)}</span><span class="k">終止月費 (2027/7)</span></div>` +
-    `<div class="dev-item"><span class="v" style="color:var(--amber)">+${fmt0(growth)}</span><span class="k">期間成長</span></div>` +
+    `<div class="dev-item"><span class="v">${fmt0(start.total)}</span><span class="k">起始月費 (${baseMonthLabel(tlStart)})</span></div>` +
+    `<div class="dev-item dc"><span class="v">${fmt0(end.total)}</span><span class="k">終止月費 (${baseMonthLabel(tlEnd)})</span></div>` +
+    `<div class="dev-item"><span class="v" style="color:var(--amber)">+${fmt0(growth)}</span><span class="k">期間成長（${span} 個月）</span></div>` +
     `<div class="dev-item"><span class="v">${num(totalHouses)}</span><span class="k">部署 house 總數</span></div>`;
+  document.getElementById('tl-range-label').textContent = `${baseMonthLabel(tlStart)} – ${baseMonthLabel(tlEnd)} · USD / 月`;
 }
 
 function attachTimelineHover() {
@@ -1134,8 +1238,9 @@ function attachTimelineHover() {
     const rect = svg.getBoundingClientRect();
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
     const vbX = (cx - rect.left) / rect.width * TL.w;
-    let i = Math.round((vbX - TL.ml) / TL.pw * TL_SPAN);
-    i = Math.max(0, Math.min(TL_SPAN, i));
+    const span = tlState.span;
+    let i = Math.round((vbX - TL.ml) / TL.pw * span);
+    i = Math.max(0, Math.min(span, i));
     const s = tlState.series[i];
     const x = tlX(i), y = tlY(s.total);
 
@@ -1146,7 +1251,7 @@ function attachTimelineHover() {
       ? `<div class="tt-line">階梯 <span class="cd">+${fmt0(s.mskInc + s.mgInc)}</span> · ${s.mskTier} / ${s.mgTier}</div>`
       : '';
     tip.innerHTML =
-      `<div class="tt-m">${monthLabel(i)}</div>` +
+      `<div class="tt-m">${baseMonthLabel(s.k)}</div>` +
       `<div class="tt-total">${fmt0(s.total)} / 月</div>` +
       `<div class="tt-line">base <span class="cd">${fmt0(s.base)}</span> · 批次 <span class="cd">+${fmt0(s.linear)}</span></div>` +
       stepTxt +
@@ -1170,7 +1275,8 @@ function renderDeployList() {
   const list = document.getElementById('deploy-list');
   list.innerHTML = '';
   deploys.forEach((dp, i) => {
-    const monthsToEnd = TL_SPAN - dp.month;
+    const monthsToEnd = tlEnd - dp.month;
+    const monthsTxt = monthsToEnd >= 0 ? `${monthsToEnd} 月` : '窗外';
     const row = document.createElement('div');
     row.className = 'batch-row';
     row.innerHTML =
@@ -1178,9 +1284,9 @@ function renderDeployList() {
       `<span class="deploy-field"><span class="deploy-field-label">M houses</span>` +
       `<input type="number" class="deploy-input" data-idx="${i}" data-field="m" min="0" max="1600" value="${dp.m}"></span>` +
       `<span class="deploy-field"><span class="deploy-field-label">部署月份</span>` +
-      `<select class="deploy-input" data-idx="${i}" data-field="month">${monthOptions(dp.month)}</select></span>` +
+      `<select class="deploy-input" data-idx="${i}" data-field="month">${deployMonthOptions(dp.month)}</select></span>` +
       `<span class="deploy-months"><span class="deploy-months-label">上線月數 (至終止)</span>` +
-      `<span class="deploy-months-val">${monthsToEnd} 月</span></span>` +
+      `<span class="deploy-months-val">${monthsTxt}</span></span>` +
       `<button class="batch-delete" data-idx="${i}"${deploys.length === 1 ? ' disabled' : ''}>✕</button>`;
     list.appendChild(row);
   });
@@ -1191,7 +1297,7 @@ function renderDeployList() {
       let v = parseInt(this.value, 10);
       if (isNaN(v)) return;
       if (field === 'm') v = Math.max(0, Math.min(1600, v));
-      else v = Math.max(0, Math.min(TL_SPAN, v));
+      else v = Math.max(0, Math.min(TL_MONTH_MAX, v));
       deploys[idx][field] = v;
       if (field === 'month') renderDeployList(); // refresh 上線月數 label
       else renderTimelineChart();
@@ -1210,6 +1316,20 @@ function renderDeployList() {
 
 document.getElementById('add-deploy-btn').addEventListener('click', () => {
   deploys.push({ m: 200, month: 6 });
+  renderDeployList();
+});
+
+fillWindowSelects();
+document.getElementById('tl-start').addEventListener('change', e => {
+  tlStart = parseInt(e.target.value, 10) || 0;
+  if (tlStart >= tlEnd) tlEnd = Math.min(TL_MONTH_MAX, tlStart + 1);
+  fillWindowSelects();      // reflect any auto-adjusted end
+  renderDeployList();       // refresh 上線月數 labels + chart
+});
+document.getElementById('tl-end').addEventListener('change', e => {
+  tlEnd = parseInt(e.target.value, 10) || 0;
+  if (tlEnd <= tlStart) tlStart = Math.max(0, tlEnd - 1);
+  fillWindowSelects();
   renderDeployList();
 });
 
